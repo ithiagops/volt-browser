@@ -4,7 +4,10 @@ Navegador para Windows e Linux com foco em velocidade, uso consciente de memóri
 interface leve e minimalista. O projeto combina gerenciamento de abas, economia automática
 de RAM e WhatsApp integrado à barra lateral.
 
-**Versão atual do código: 0.6.1 — experimental.**
+**Versão atual do código: 0.6.2 — experimental.**
+
+A faixa de abas aceita cliques até seu topo; fechar uma aba ou grupo não abre uma
+confirmação genérica do VOLT. Dados temporários da aba fechada podem ser perdidos.
 
 ## Recursos
 
@@ -42,7 +45,7 @@ Requer SDK .NET 10 para desenvolvimento e WebView2 Runtime para navegar.
 ```powershell
 dotnet run --project windows/VOLT.csproj
 dotnet run --project windows/tests/PolicyChecks.csproj -c Release
-dotnet publish windows/VOLT.csproj -c Release -r win-x64 --self-contained true -o windows/dist/VOLT-0.6.1
+dotnet publish windows/VOLT.csproj -c Release -r win-x64 --self-contained true -o windows/dist/VOLT-0.6.2
 ```
 
 Para gerar o instalador, instale NSIS 3.11 ou compatível e execute:

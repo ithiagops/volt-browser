@@ -13,7 +13,7 @@ from PySide6.QtSvg import QSvgRenderer
 from policy import address,is_tracker,move_block,survivor,eligible,pressure,process_memory
 BASE=Path(getattr(sys,'_MEIPASS',Path(__file__).resolve().parent))
 ASSETS=BASE/'assets'
-VERSION='0.6.1 Linux'
+VERSION='0.6.2 Linux'
 ACTIVE=QWebEnginePage.LifecycleState.Active
 FROZEN=QWebEnginePage.LifecycleState.Frozen
 DISCARDED=QWebEnginePage.LifecycleState.Discarded
@@ -92,9 +92,14 @@ class Tabs(QWidget):
     def rect_tab(self,i):
         from PySide6.QtCore import QRect
         return QRect(i*self.width_tab()-self.offset,4,self.width_tab()-4,28)
+    def hit_rect_tab(self,i):
+        from PySide6.QtCore import QRect
+        visual=self.rect_tab(i)
+        return QRect(visual.left(),0,self.width_tab(),self.height())
     def hit(self,p):
+        if not self.rect().contains(p):return -1
         for i in range(len(self.w.order)):
-            if self.rect_tab(i).contains(p):return i
+            if self.hit_rect_tab(i).contains(p):return i
         return -1
     def plus_rect(self):
         from PySide6.QtCore import QRect
@@ -122,7 +127,7 @@ class Tabs(QWidget):
         i=self.hit(pos)
         if i<0:return
         ident=self.w.order[i];r=self.rect_tab(i)
-        if pos.x()>r.right()-26:self.w.close_tabs({ident});return
+        if r.contains(pos) and pos.x()>r.right()-26:self.w.close_tabs({ident});return
         shift=bool(e.modifiers()&Qt.ShiftModifier);ctrl=bool(e.modifiers()&Qt.ControlModifier)
         if shift and self.anchor in self.w.order:
             a=self.w.order.index(self.anchor);self.selected=set(self.w.order[min(a,i):max(a,i)+1])
@@ -352,9 +357,6 @@ class Browser(QMainWindow):
     def close_tabs(self,ids):
         ids=set(ids)&set(self.order)
         if not ids:return
-        if any(self.tabs[x].downloads for x in ids):
-            QMessageBox.information(self,'Downloads','Aguarde os downloads dessas abas terminarem.');return
-        if any(self.tabs[x].view for x in ids) and QMessageBox.question(self,'Fechar abas',f'Fechar {len(ids)} aba(s)? Dados não salvos podem ser perdidos.')!=QMessageBox.Yes:return
         target=survivor(self.order,ids,self.active)
         if target is None:self.close();return
         self.setUpdatesEnabled(False)
@@ -479,8 +481,6 @@ class Browser(QMainWindow):
         if key=='pause_media':
             for tab in self.tabs.values():tab.media()
     def closeEvent(self,event):
-        if any(not x.isFinished() for x in self.download_items):
-            if QMessageBox.question(self,'Sair','Há downloads em andamento. Sair e cancelar?')!=QMessageBox.Yes:event.ignore();return
         self.closing=True;self.timer.stop();self.save()
         for tab in list(self.tabs.values())+([self.wa] if self.wa else []):
             if tab.view:tab.view.stop();tab.view.page().deleteLater();tab.view.deleteLater();tab.view=None

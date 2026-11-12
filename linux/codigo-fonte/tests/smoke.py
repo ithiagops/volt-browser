@@ -23,6 +23,11 @@ def run():
   for _ in range(5):w.new_tab()
   app.processEvents();check(w.address.hasFocus(),'new tab focuses address');check(w.address.text()=='','new tab clears previous address')
   ids=w.order[:];h=w.header
+  QTest.mouseClick(h,Qt.LeftButton,Qt.NoModifier,QPoint(h.rect_tab(1).center().x(),0));check(w.active==ids[1],'top edge selects tab')
+  QTest.mouseClick(h,Qt.LeftButton,Qt.NoModifier,QPoint(h.rect_tab(2).center().x(),2));check(w.active==ids[2],'above rounded shape selects tab')
+  count=len(w.order);QTest.mouseClick(h,Qt.LeftButton,Qt.NoModifier,QPoint(h.rect_tab(1).right()-8,0));check(len(w.order)==count and w.active==ids[1],'above close icon selects instead of closing')
+  QTest.mouseClick(h,Qt.LeftButton,Qt.NoModifier,QPoint(h.rect_tab(2).right()+2,0));check(w.active==ids[2],'divider gap belongs to its tab')
+  check(h.hit(QPoint(10,-1))==-1 and h.hit(QPoint(10,h.height()))==-1,'outside tab strip excluded')
   QTest.mouseClick(h,Qt.LeftButton,Qt.NoModifier,h.rect_tab(3).center());QTest.mouseClick(h,Qt.LeftButton,Qt.ShiftModifier,h.rect_tab(5).center());check(h.selected==set(ids[3:]),'shift selects inclusive range')
   QTest.mousePress(h,Qt.LeftButton,Qt.NoModifier,h.rect_tab(4).center());QTest.mouseMove(h,QPoint(8,18),100);QTest.mouseRelease(h,Qt.LeftButton,Qt.NoModifier,QPoint(8,18));check(w.order[:3]==ids[3:],'group drag preserves order');check(h.selected=={w.active},'drop clears multi selection')
   for _ in range(12):w.toggle_theme();app.processEvents()
@@ -31,6 +36,14 @@ def run():
   closing={x for x in w.order if x!=first};w.close_tabs(closing);app.processEvents();check(w.order==[first] and w.active==first,'bulk close selects final survivor')
   t=w.tabs[first];t.navigate('https://example.invalid');t.view.stop();t.view.setHtml('<html><title>Local smoke</title><body style="background:#181e27;color:white">VOLT local engine test<a href="https://example.com">link</a></body></html>',QUrl('https://example.test/'))
   wait_until(lambda:t.ready and not t.loading);check(t.title=='Local smoke','Chromium renders local page')
+  old_question=QMessageBox.question;old_information=QMessageBox.information
+  def no_close_prompt(*args,**kwargs):raise AssertionError('Closing a tab must not show a generic prompt')
+  QMessageBox.question=no_close_prompt;QMessageBox.information=no_close_prompt
+  try:
+   extra=w.new_tab();extra.ensure_view();extra.downloads=1;extra_id=extra.ident;w.close_tabs({extra_id});check(extra_id not in w.tabs,'loaded tab closes directly even with a download counter')
+   one=w.new_tab();one.ensure_view();two=w.new_tab();two.ensure_view();group={one.ident,two.ident};w.close_tabs(group);check(not group.intersection(w.tabs),'loaded group closes without generic confirmation')
+  finally:QMessageBox.question=old_question;QMessageBox.information=old_information
+  w.activate(first)
   page=t.view.page();bg=w.new_tab();t.hidden=time.monotonic()-60;w.sweep();check(page.lifecycleState()==FROZEN,'hidden idle page freezes')
   w.release();check(page.lifecycleState()==DISCARDED,'manual release discards inactive page');w.activate(first);check(page.lifecycleState()==ACTIVE,'activation restores discarded page')
   # Save image of live engine and native chrome without contacting real services.

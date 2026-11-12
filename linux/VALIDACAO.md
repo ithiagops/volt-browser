@@ -1,3 +1,14 @@
+# Verificação 0.6.2
+
+Regressões: alvos de abas no topo em 100%, 125%, 150% e 200% de DPI;
+limites fora da faixa; espaços entre abas; seleção acima do X sem fechar;
+fechamento direto de uma aba carregada e de um grupo sem perguntar.
+Linux: 35 verificações integradas offscreen passaram, além de 8 testes de políticas.
+Windows: compilação e testes de geometria/políticas; sem execução da interface WinForms
+ou instalador neste ambiente Linux. O ajuste da borda nativa precisa de validação no Windows.
+
+---
+
 # Linux 0.6.1 — validação adicional
 
 - 8 testes de políticas passaram.

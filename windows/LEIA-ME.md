@@ -1,3 +1,17 @@
+# Atualização 0.6.2
+
+- Área clicável das abas estendida até o topo da faixa, sem alterar o desenho.
+- Pequenos espaços entre abas também aceitam seleção. O X mantém sua área própria.
+- No Windows, o redimensionamento da borda externa é preservado sem capturar cliques
+  na faixa superior pertencente às abas.
+- Fechamento individual ou em grupo sem pergunta genérica do VOLT, inclusive com página
+  carregada. Fechar uma aba encerra seu estado temporário e pode interromper downloads.
+- As confirmações de outras ações (por exemplo, liberar memória manualmente) permanecem.
+
+Código-fonte atualizado: https://github.com/ithiagops/volt-browser
+
+---
+
 # VOLT 0.6.1 — Windows
 
 ## Instalar ou usar sem instalação

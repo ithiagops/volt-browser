@@ -2,6 +2,11 @@ namespace Volt;
 
 readonly record struct TabLayout(int Start, int Visible, float Width, bool Overflow)
 {
+    // The rounded shape is visual only; the target reaches the top of the tab strip.
+    public static System.Drawing.RectangleF HitBounds(System.Drawing.RectangleF visual, float stripHeight, float halfGap)
+        => visual.Width<=0 || stripHeight<=0 ? System.Drawing.RectangleF.Empty
+            : new(visual.Left-halfGap,0,visual.Width+halfGap*2,stripHeight);
+
     public static TabLayout Calculate(int count, float availableWidth, int start, int selected, bool reveal)
     {
         if (count <= 0) return new(0, 0, 168, false);

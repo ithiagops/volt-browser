@@ -7,6 +7,7 @@ sealed partial class BrowserWindow
 {
     [DllImport("user32.dll")] static extern bool ReleaseCapture();
     [DllImport("user32.dll")] static extern IntPtr SendMessage(IntPtr hwnd, int msg, IntPtr w, IntPtr l);
+    BrowserTabsHeader? browserTabHeader;
     readonly FlowLayoutPanel bookmarkBar = new() { Dock=DockStyle.Top, Height=28, Padding=new(10,0,10,0), WrapContents=false, AutoScroll=true, Tag="chrome" };
     readonly List<SavedLink> bookmarks = new();
     record SavedLink(string Title, string Url);
@@ -59,6 +60,8 @@ sealed partial class BrowserWindow
         if(m.Msg!=0x84 || WindowState!=FormWindowState.Normal || (int)m.Result!=1) return;
         long raw=m.LParam.ToInt64();var pt=PointToClient(new Point((short)(raw&0xffff),(short)((raw>>16)&0xffff)));
         int edge=(int)Math.Ceiling(6*DeviceDpi/96f);bool l=pt.X<edge,r=pt.X>=ClientSize.Width-edge,t=pt.Y<edge,b=pt.Y>=ClientSize.Height-edge;
+        // Keep the outer resize border, but do not let its inner padding steal tab presses.
+        if(t && !l && !r && pt.Y>=Padding.Top && browserTabHeader?.HasTabAtScreenPoint(PointToScreen(pt))==true)t=false;
         m.Result=(IntPtr)(t?(l?13:r?14:12):b?(l?16:r?17:15):l?10:r?11:1);
     }
 }

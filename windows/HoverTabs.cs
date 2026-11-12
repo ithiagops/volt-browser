@@ -218,7 +218,13 @@ sealed class BrowserTabsHeader : Control
         }
         else TextRenderer.DrawText(g, text, Font, Rectangle.Round(b), ForeColor, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
     }
-    TabPage? Hit(Point p) => hits.FirstOrDefault(item => item.Value.Contains(p)).Key;
+    TabPage? Hit(Point p)
+    {
+        if(!ClientRectangle.Contains(p))return null;
+        // Match paint order during animations; close targets keep their original bounds.
+        return hits.Reverse().FirstOrDefault(item=>TabLayout.HitBounds(item.Value,Height,Px(2)).Contains(p)).Key;
+    }
+    internal bool HasTabAtScreenPoint(Point screen) => Hit(PointToClient(screen)) is not null;
     bool AtClose(TabPage page, Point p) => hits.TryGetValue(page, out var b) && CloseBox(b).Contains(p);
     protected override void OnMouseMove(MouseEventArgs e)
     {

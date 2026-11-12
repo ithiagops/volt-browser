@@ -114,4 +114,17 @@ foreach(int preferred in new[]{-100,0,340,760,2000,5000})
     int width=SidebarLayout.Width(viewport,preferred);
     Check(width>=0 && width+Math.Min(265,viewport)<=viewport,"Overlay never exceeds the viewport");
 }
+foreach(float dpi in new[]{1f,1.25f,1.5f,2f})
+{
+    var visual=new System.Drawing.RectangleF(8*dpi,6*dpi,198*dpi,24*dpi);
+    var hit=TabLayout.HitBounds(visual,36*dpi,2*dpi);
+    Check(hit.Contains(20*dpi,0),"Top edge selects tab");
+    Check(hit.Contains(20*dpi,3*dpi),"Above rounded shape selects tab");
+    Check(hit.Contains(20*dpi,35*dpi),"Bottom of strip selects tab");
+    Check(hit.Contains(207*dpi,0),"Small divider gap remains clickable");
+    Check(!hit.Contains(20*dpi,-dpi),"Outside strip above is excluded");
+    Check(!hit.Contains(20*dpi,36*dpi),"Toolbar below is excluded");
+    Check(!hit.Contains(5*dpi,0),"Empty title space remains draggable");
+    Check(!hit.Contains(210*dpi,0),"Next tab target is separate");
+}
 Console.WriteLine($"{checks} verificações passaram.");
