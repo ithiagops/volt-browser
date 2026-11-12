@@ -1,3 +1,20 @@
+# Atualização 0.6.3 — Importar senhas
+
+Menu → Senhas — importar e gerenciar… → Importar CSV… . Use o CSV exportado do seu
+navegador. As entradas podem ser usadas pelo botão Preencher nesta página, sem envio
+automático. O protocolo, domínio e porta precisam coincidir com o login salvo.
+
+Windows usa DPAPI do usuário; Linux usa o cofre Secret Service da sessão, sem fallback
+para arquivo em texto claro. No Linux, é necessário um cofre de sessão disponível e
+ desbloqueado. O AppImage inclui a ferramenta de acesso; para rodar pelo código-fonte,
+instale libsecret-tools. Exclua sua cópia do CSV após importar, pois a exportação original
+contém as senhas em texto claro.
+
+Inclui a área clicável das abas até o topo e o fechamento sem confirmação genérica.
+Consulte o README do repositório para detalhes do armazenamento e limitações.
+
+---
+
 # Atualização 0.6.2
 
 - Área clicável das abas estendida até o topo da faixa, sem alterar o desenho.

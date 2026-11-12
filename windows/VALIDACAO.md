@@ -1,3 +1,23 @@
+# Verificação 0.6.3 — Senhas e usabilidade das abas
+
+- Windows: 287 verificações de geometria e políticas, incluindo CSV com BOM, aspas,
+  separadores, múltiplas linhas, atualização por origem/usuário e isolamento de endereço.
+- Linux: 20 testes unitários e 41 verificações integradas offscreen. Importação CSV,
+  bloqueio na falta do cofre, ausência de senha nos argumentos do processo, preservação
+  de cofre ilegível, preenchimento real de formulário local sem submeter, bloqueio de
+  outra origem e ausência da senha nas colunas visíveis do gerenciador.
+- Testes usam somente credenciais fictícias. Nenhum CSV de senhas real foi importado.
+- Windows: publicação autocontida compilada; DPAPI e interface/instalador não foram
+  executados neste ambiente Linux. Testar com o usuário real do Windows.
+- Linux: acesso ao Secret Service real não pôde ser validado no ambiente sem sessão D-Bus.
+  O backend foi testado com respostas simuladas e falha fechada; o desktop precisa ter
+  um serviço de cofre disponível. O helper libsecret é incluído no AppImage.
+- Cabeçalho clicável em toda a altura; no Windows maximizado, remove o recuo superior
+  da janela para o clique na borda da tela atingir as abas. Em janela normal, a borda
+  externa continua redimensionável. Fechamento individual/grupo sem pergunta genérica.
+
+---
+
 # Verificação 0.6.2
 
 Regressões: alvos de abas no topo em 100%, 125%, 150% e 200% de DPI;

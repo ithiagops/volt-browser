@@ -13,7 +13,7 @@ from PySide6.QtSvg import QSvgRenderer
 from policy import address,is_tracker,move_block,survivor,eligible,pressure,process_memory
 BASE=Path(getattr(sys,'_MEIPASS',Path(__file__).resolve().parent))
 ASSETS=BASE/'assets'
-VERSION='0.6.2 Linux'
+VERSION='0.6.3 Linux'
 ACTIVE=QWebEnginePage.LifecycleState.Active
 FROZEN=QWebEnginePage.LifecycleState.Frozen
 DISCARDED=QWebEnginePage.LifecycleState.Discarded
@@ -473,6 +473,7 @@ class Browser(QMainWindow):
         menu=QMenu(self);menu.addAction('Nova aba\tCtrl+T',self.new_tab);menu.addAction('Liberar abas em segundo plano…',lambda:self.release(True))
         for text,key,default in [('Limpeza automática acima de 1,2 GB','auto_memory',True),('Economia forte de memória','economy',False),('Pausar mídia ao sair da aba','pause_media',False)]:
             act=menu.addAction(text);act.setCheckable(True);act.setChecked(self.settings.get(key,default));act.toggled.connect(lambda value,k=key:self.preference(k,value))
+        menu.addSeparator();menu.addAction('Senhas — importar e gerenciar…',self.password_manager)
         menu.addSeparator();menu.addAction('Modo claro' if self.dark else 'Modo escuro',self.toggle_theme)
         menu.addAction('Sobre o VOLT',lambda:QMessageBox.information(self,'VOLT',f'VOLT {VERSION}\nBase: Windows 0.6.0\nQt WebEngine / Chromium\nUma aba ativa ou com áudio pode ultrapassar a meta de memória.'))
         menu.exec(self.address.mapToGlobal(QPoint(self.address.width()-140,36)))
@@ -480,6 +481,18 @@ class Browser(QMainWindow):
         self.settings[key]=value;self.save()
         if key=='pause_media':
             for tab in self.tabs.values():tab.media()
+    def password_manager(self):
+        from password_ui import PasswordDialog
+        dialog=PasswordDialog(self)
+        try:dialog.exec()
+        finally:dialog.entries.clear();dialog.deleteLater()
+    def fill_password(self,entry):
+        from passwords import origin,fill_script
+        tab=self.tabs.get(self.active)
+        if not tab or not tab.view or origin(tab.url)!=entry['origin']:return
+        def filled(result):
+            if result!='ok':QMessageBox.information(self,'Senhas','Não foi possível identificar um formulário de login seguro nesta página. Nenhum formulário foi enviado.')
+        tab.view.page().runJavaScript(fill_script(entry),filled)
     def closeEvent(self,event):
         self.closing=True;self.timer.stop();self.save()
         for tab in list(self.tabs.values())+([self.wa] if self.wa else []):

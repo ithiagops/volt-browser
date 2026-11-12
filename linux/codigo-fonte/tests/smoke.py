@@ -65,6 +65,23 @@ def run():
   QTest.mouseClick(delegate,Qt.LeftButton,Qt.NoModifier,QPoint(delegate.width()-20,100));check(not w.wa_visible,'click on Chromium page outside dismisses panel')
   w.toggle_whatsapp();w.panel_width=500;w.layout_whatsapp();check(w.wa_shell.width()==500 and w.stack.size()==page_size,'resizing overlay keeps page dimensions')
   app.processEvents();QTest.qWait(100);check(w.wa_shell.height()==w.viewport.height(),'overlay fills viewport height');w.grab().save('/tmp/volt-linux-sidebar-061.png')
+  from passwords import fill_script
+  t.view.setHtml('<form onsubmit="window.submitted=true;return false"><input autocomplete="username" id="user"><input type="password" id="password"><button>Entrar</button></form><script>window.submitted=false</script>',QUrl('https://vault.test/'))
+  wait_until(lambda:not t.loading);results=[]
+  t.view.page().runJavaScript('location.origin',lambda value:results.append(value));wait_until(lambda:bool(results));check(results.pop()=='https://vault.test','login test has the expected origin')
+  fake={'origin':'https://other.test','username':'fake-user','password':'FAKE quoted " password and unicode ☃' }
+  t.view.page().runJavaScript(fill_script(fake),lambda value:results.append(value));wait_until(lambda:bool(results));check(results.pop()=='origin','autofill refuses a different origin')
+  fake['origin']='https://vault.test';t.view.page().runJavaScript(fill_script(fake),lambda value:results.append(value));wait_until(lambda:bool(results));check(results.pop()=='ok','autofill detects the login fields')
+  t.view.page().runJavaScript('JSON.stringify([document.getElementById("user").value,document.getElementById("password").value,window.submitted])',lambda value:results.append(value));wait_until(lambda:bool(results));values=json.loads(results.pop());check(values==[fake['username'],fake['password'],False],'autofill preserves characters without submitting')
+  from unittest.mock import patch
+  from password_ui import PasswordDialog
+  class FakeVault:
+   def load(self):return [fake.copy()]
+  with patch('password_ui.SecretVault',FakeVault):
+   dialog=PasswordDialog(w);dialog.show();wait_until(lambda:dialog.worker is None and len(dialog.entries)==1)
+   check(dialog.table.topLevelItemCount()==1 and dialog.table.columnCount()==2,'password manager lists site and username only')
+   check('FAKE quoted' not in dialog.table.topLevelItem(0).text(0)+dialog.table.topLevelItem(0).text(1),'password is not exposed in visible columns')
+   dialog.close();dialog.entries.clear();dialog.deleteLater()
   print(json.dumps({'passed':len(checks),'checks':checks},ensure_ascii=False),flush=True)
  except Exception as exc:
   import traceback;traceback.print_exc();errors.append(str(exc))

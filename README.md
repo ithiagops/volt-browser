@@ -4,10 +4,35 @@ Navegador para Windows e Linux com foco em velocidade, uso consciente de memóri
 interface leve e minimalista. O projeto combina gerenciamento de abas, economia automática
 de RAM e WhatsApp integrado à barra lateral.
 
-**Versão atual do código: 0.6.2 — experimental.**
+**Versão atual do código: 0.6.3 — experimental.**
 
 A faixa de abas aceita cliques até seu topo; fechar uma aba ou grupo não abre uma
 confirmação genérica do VOLT. Dados temporários da aba fechada podem ser perdidos.
+
+## Senhas importadas
+
+Abra **Menu → Senhas — importar e gerenciar… → Importar CSV…** e escolha o CSV
+exportado do navegador ou gerenciador. Chrome, Opera, Edge, Firefox e Bitwarden são
+aceitos quando incluem URL e senha nas colunas esperadas. Registros do mesmo endereço
+(protocolo, domínio e porta) e usuário são atualizados; linhas inválidas são ignoradas.
+
+O VOLT não faz cópia do CSV original. Esse arquivo de exportação contém senhas em texto
+claro: exclua sua cópia após concluir a importação. Nunca o adicione ao repositório.
+
+- **Windows:** cofre em `%LocalAppData%/VOLT/passwords.dpapi`, criptografado com DPAPI
+  do usuário atual. Não é sincronizado nem portável entre usuários ou instalações do Windows.
+- **Linux:** dados no cofre Secret Service da sessão (por exemplo, GNOME Keyring ou
+  KWallet com Secret Service). O AppImage inclui `secret-tool`; a sessão precisa ter um
+  serviço de cofre disponível e desbloqueado. No código-fonte, instale `libsecret-tools`.
+- Sem cofre Linux disponível, a operação informa o erro e não grava senhas em arquivo
+  desprotegido. Um cofre existente ilegível não é substituído por um vazio na importação.
+- Para usar um login, abra sua página, selecione-o no gerenciador e clique em
+  **Preencher nesta página**. O endereço deve coincidir exatamente (protocolo, domínio e
+  porta); a página também é conferida no instante do preenchimento.
+- Não há envio automático do formulário, cópia para a área de transferência nem
+  preenchimento em frames de outros sites. Não há captura automática de novos logins.
+  Formulários com várias senhas, campos novos/de cadastro ou estruturas especiais podem
+  exigir preenchimento manual.
 
 ## Recursos
 
@@ -45,7 +70,7 @@ Requer SDK .NET 10 para desenvolvimento e WebView2 Runtime para navegar.
 ```powershell
 dotnet run --project windows/VOLT.csproj
 dotnet run --project windows/tests/PolicyChecks.csproj -c Release
-dotnet publish windows/VOLT.csproj -c Release -r win-x64 --self-contained true -o windows/dist/VOLT-0.6.2
+dotnet publish windows/VOLT.csproj -c Release -r win-x64 --self-contained true -o windows/dist/VOLT-0.6.3
 ```
 
 Para gerar o instalador, instale NSIS 3.11 ou compatível e execute:
@@ -97,7 +122,7 @@ Consulte `linux/LEIA-ME.md` para as dependências de cada distribuição.
 Instaladores, AppImage e pacotes portáteis ficam em **Releases**, quando publicados.
 Eles não devem ser adicionados ao histórico do código. Veja `docs/RELEASES.md`.
 
-Os pacotes 0.6.1 foram compilados e tiveram suas verificações documentadas em
+As compilações e verificações estão documentadas em
 `windows/VALIDACAO.md` e `linux/VALIDACAO.md`. Os testes offscreen do Linux não substituem
 validação em um desktop físico. O instalador e a interface Windows precisam de teste no
 Windows; login real do WhatsApp, áudio físico, codecs e serviços com DRM também precisam

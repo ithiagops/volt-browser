@@ -127,4 +127,34 @@ foreach(float dpi in new[]{1f,1.25f,1.5f,2f})
     Check(!hit.Contains(5*dpi,0),"Empty title space remains draggable");
     Check(!hit.Contains(210*dpi,0),"Next tab target is separate");
 }
+
+Check(PasswordRules.Origin("https://EXAMPLE.test:443/login")=="https://example.test","Password origin canonicalization");
+Check(PasswordRules.Origin("http://example.test")!=PasswordRules.Origin("https://example.test"),"Password scheme isolation");
+Check(PasswordRules.Origin("https://example.test:8443")!=PasswordRules.Origin("https://example.test"),"Password port isolation");
+Check(PasswordRules.Origin("https://example.test.evil.test")!=PasswordRules.Origin("https://example.test"),"Password hostname isolation");
+Check(PasswordRules.Origin("https://u:p@example.test") is null,"Reject credential URLs");
+Check(PasswordRules.Origin("javascript:alert(1)") is null,"Reject non-web origins");
+var passwordCsv=Path.GetTempFileName();
+try
+{
+    File.WriteAllText(passwordCsv,"\uFEFFname,url,username,password\nExample,https://example.test/login,\"user,one\",\"FAKE quote \"\" and\nnewline\"\n");
+    var imported=PasswordRules.ReadCsv(passwordCsv);
+    Check(imported.Entries.Count==1 && imported.Skipped==0,"Import quoted CSV with multiline password");
+    Check(imported.Entries[0].Password=="FAKE quote \" and\nnewline","Preserve password bytes after CSV unquoting");
+    Check(imported.Entries[0].Username=="user,one","Preserve quoted username");
+    File.WriteAllText(passwordCsv,"url;username;password\nhttps://example.test;u;FAKE\n");
+    Check(PasswordRules.ReadCsv(passwordCsv).Entries[0].Password=="FAKE","Import semicolon CSV");
+    File.WriteAllText(passwordCsv,"login_uri,login_username,login_password\nhttps://example.test,u,FAKE\n");
+    Check(PasswordRules.ReadCsv(passwordCsv).Entries.Count==1,"Import alternate export columns");
+    File.WriteAllText(passwordCsv,"url,username,password\njavascript:bad,u,FAKE\nhttps://example.test,u,\nhttps://valid.test,u,FAKE\n");
+    var filtered=PasswordRules.ReadCsv(passwordCsv);
+    Check(filtered.Skipped==2 && filtered.Entries.Count==1,"Skip unsafe origins and empty passwords");
+    var merged=PasswordRules.Merge(new[]{new PasswordEntry("https://example.test","u","FAKE old")},
+        new[]{new PasswordEntry("https://example.test","u","FAKE new"),new PasswordEntry("https://example.test","v","FAKE second")},out int added,out int updated);
+    Check(merged.Count==2 && added==1 && updated==1,"Merge passwords by exact origin and username");
+    File.WriteAllText(passwordCsv,"url,password,password\nhttps://example.test,FAKE,FAKE\n");
+    bool duplicateRejected=false;try{PasswordRules.ReadCsv(passwordCsv);}catch(InvalidDataException){duplicateRejected=true;}
+    Check(duplicateRejected,"Reject duplicate export headers");
+}
+finally{File.Delete(passwordCsv);}
 Console.WriteLine($"{checks} verificações passaram.");

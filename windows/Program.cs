@@ -136,7 +136,13 @@ sealed partial class BrowserWindow : Form
         foreach(int i in new[]{0,1,2}) caption.ColumnStyles.Add(new(SizeType.Percent,33.333f));
         var minimize=MakeButton("Minimizar");var maximize=MakeButton("Maximizar");var exit=MakeButton("Fechar janela");
         minimize.Click+=(_,_)=>WindowState=FormWindowState.Minimized;maximize.Click+=(_,_)=>ToggleMaximize();exit.Click+=(_,_)=>Close();
-        Resize+=(_,_)=>{((ChromeButton)maximize).Kind=WindowState==FormWindowState.Maximized?"restore":"maximize";maximize.Invalidate();};
+        Resize+=(_,_)=>
+        {
+            ((ChromeButton)maximize).Kind=WindowState==FormWindowState.Maximized?"restore":"maximize";
+            int top=WindowState==FormWindowState.Maximized?0:2;
+            if(Padding.Top!=top)Padding=new(2,top,2,2);
+            maximize.Invalidate();
+        };
         caption.Controls.Add(minimize,0,0);caption.Controls.Add(maximize,1,0);caption.Controls.Add(exit,2,0);
         titleBar.Controls.Add(tabHeader);titleBar.Controls.Add(caption);
         var content=new BrowserContentPanel {Dock=DockStyle.Fill,Tag="surface"};content.Controls.Add(tabs);
@@ -193,6 +199,7 @@ sealed partial class BrowserWindow : Form
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             { MessageBox.Show(this, "O tema foi aplicado, mas não foi possível salvar a preferência.", "VOLT"); }
         };
+        popup.Items.Add("Senhas — importar e gerenciar…",null,(_,_)=>ShowPasswords());
         popup.Items.Add(dark);
         BrowserTheme.Apply(this, darkMode);
         if (darkMode) { popup.Renderer = new ToolStripProfessionalRenderer(new DarkMenuColors()); popup.BackColor = BrowserTheme.Surface; popup.ForeColor = BrowserTheme.Text; }
@@ -232,7 +239,7 @@ sealed partial class BrowserWindow : Form
         popup.Items.Add(automatic);
         popup.Items.Add("Diagnóstico das abas", null, (_, _) => ShowTabDiagnostics());
         popup.Items.Add("Memória e otimizações", null, (_, _) => MessageBox.Show(this,
-            "VOLT 0.6.2 • versão experimental\n\nInício nativo: novas abas não carregam WebView2. Abas ocultas são candidatas à suspensão após 45 segundos. Economia forte busca manter até 2 páginas carregadas, liberando excedentes elegíveis após 45 segundos; outras páginas podem ser liberadas após 3 minutos. Áudio, downloads, carregamento e abas marcadas como ativas são preservados.\n\nLiberar abas em segundo plano descarta a página e exige recarregar ao voltar. Use só depois de salvar seu trabalho e terminar uploads/chamadas. Também pode ser automatizado pelo modo opcional de economia forte.\n\nRAM estimada: soma do Working Set do VOLT e dos processos do mesmo perfil WebView2. Pode contar memória compartilhada mais de uma vez; difere do Gerenciador de Tarefas e não inclui crashpad. Se outra janela VOLT compartilhar o perfil, o motor compartilhado também entra na soma.\n\nO bloqueio usa uma pequena lista local de domínios. Se um site falhar, desligue a opção e recarregue. Não é um bloqueador completo de anúncios.\n\nGanho ainda não medido no Windows.", "VOLT"));
+            "VOLT 0.6.3 • versão experimental\n\nInício nativo: novas abas não carregam WebView2. Abas ocultas são candidatas à suspensão após 45 segundos. Economia forte busca manter até 2 páginas carregadas, liberando excedentes elegíveis após 45 segundos; outras páginas podem ser liberadas após 3 minutos. Áudio, downloads, carregamento e abas marcadas como ativas são preservados.\n\nLiberar abas em segundo plano descarta a página e exige recarregar ao voltar. Use só depois de salvar seu trabalho e terminar uploads/chamadas. Também pode ser automatizado pelo modo opcional de economia forte.\n\nRAM estimada: soma do Working Set do VOLT e dos processos do mesmo perfil WebView2. Pode contar memória compartilhada mais de uma vez; difere do Gerenciador de Tarefas e não inclui crashpad. Se outra janela VOLT compartilhar o perfil, o motor compartilhado também entra na soma.\n\nO bloqueio usa uma pequena lista local de domínios. Se um site falhar, desligue a opção e recarregue. Não é um bloqueador completo de anúncios.\n\nGanho ainda não medido no Windows.", "VOLT"));
         menu.Click += (_, _) => { pin.Checked = Current?.KeepAwake == true; popup.Show(menu, new Point(0, menu.Height)); };
         InitializeBookmarks();
         timer.Tick += async (_, _) => { await SuspendTabs(false); await SweepWhatsApp(); UpdateChrome(); ReleaseMemoryPressure(); };
@@ -546,7 +553,7 @@ sealed partial class BrowserWindow : Form
             string state = tab.Unloaded ? "Liberada" : tab.Ready && tab.View!.CoreWebView2.IsSuspended ? "Suspensa" : reason.Length > 0 ? reason : tab.SleepResult;
             details.Add(tab.Title + "\n" + state + $" • {Math.Max(0, (int)(DateTime.UtcNow - tab.HiddenSince).TotalSeconds)} s desde a última saída da aba");
         }
-        using var dialog = new Form { Text = "Diagnóstico das abas — VOLT 0.6.2", Size = new(720, 500), StartPosition = FormStartPosition.CenterParent };
+        using var dialog = new Form { Text = "Diagnóstico das abas — VOLT 0.6.3", Size = new(720, 500), StartPosition = FormStartPosition.CenterParent };
         dialog.Controls.Add(new TextBox { Multiline = true, ReadOnly = true, ScrollBars = ScrollBars.Vertical, Dock = DockStyle.Fill, Text = string.Join("\r\n\r\n", details), Font = new("Segoe UI", 11) });
         dialog.ShowDialog(this);
     }
@@ -711,7 +718,7 @@ sealed partial class BrowserWindow : Form
             item.Page.ToolTipText = item.Title + "\n" + (item.Unloaded ? "Liberada; recarrega ao voltar" : item.SleepResult);
         }
         MeasureMemory();
-        status.Text = $"VOLT 0.6.2 • {items.Count} aba(s) • {sleeping} suspensa(s) • {unloaded} liberada(s) • {blocked} bloqueio(s)" + (deepEconomy ? " • Economia forte" : "") + memory;
+        status.Text = $"VOLT 0.6.3 • {items.Count} aba(s) • {sleeping} suspensa(s) • {unloaded} liberada(s) • {blocked} bloqueio(s)" + (deepEconomy ? " • Economia forte" : "") + memory;
     }
 
     protected override bool ProcessCmdKey(ref Message msg, Keys keyData)

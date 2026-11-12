@@ -6,11 +6,12 @@
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <Version>0.6.2</Version>
+    <Version>0.6.3</Version>
     <ApplicationIcon>Assets/Volt.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="10.0.0" />
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.4191.47" />
     <Compile Remove="tests/**/*.cs" />
     <EmbeddedResource Include="Assets/WhatsApp.png" LogicalName="Volt.WhatsAppIcon" />

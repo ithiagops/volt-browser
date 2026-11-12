@@ -38,3 +38,9 @@ Thumbs.db
 *.log
 core
 core.*
+
+# Nunca versionar exportações ou cofres de senhas
+*.csv
+*.dpapi
+*.dpapi.*.tmp
+*.vault
