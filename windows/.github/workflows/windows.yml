@@ -1,0 +1,20 @@
+name: Compilar VOLT para Windows
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - run: dotnet publish VOLT.csproj -c Release -r win-x64 --self-contained true -o dist/VOLT
+      - uses: actions/upload-artifact@v4
+        with:
+          name: VOLT-Windows-x64
+          path: dist/VOLT/

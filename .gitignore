@@ -1,0 +1,40 @@
+# Builds e pacotes: publicar os resultados em Releases
+**/bin/
+**/obj/
+**/dist/
+**/build/
+**/.build-env/
+**/portatil/
+*.exe
+*.dll
+*.pdb
+*.AppImage
+*.zip
+*.tar.gz
+*.deb
+*.rpm
+*.spec
+# Python
+**/.venv/
+**/venv/
+**/__pycache__/
+*.py[cod]
+.pytest_cache/
+# IDE e sistema
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+.DS_Store
+Thumbs.db
+# Dados locais, credenciais e perfis
+.env
+.env.*
+!.env.example
+**/Profile/
+**/Cache/
+**/settings.json
+*.log
+core
+core.*
