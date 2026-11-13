@@ -13,7 +13,7 @@ from PySide6.QtSvg import QSvgRenderer
 from policy import address,is_tracker,move_block,survivor,eligible,pressure,process_memory,sleep_due,position_priority,safe_history_url
 BASE=Path(getattr(sys,'_MEIPASS',Path(__file__).resolve().parent))
 ASSETS=BASE/'assets'
-VERSION='0.6.4 Linux'
+VERSION='0.6.5 Linux'
 ACTIVE=QWebEnginePage.LifecycleState.Active
 FROZEN=QWebEnginePage.LifecycleState.Frozen
 DISCARDED=QWebEnginePage.LifecycleState.Discarded
@@ -341,6 +341,8 @@ class Browser(QMainWindow):
             for b in self.findChildren(QPushButton):
                 if b.property('voltSymbol'):refresh_icon(b,self.dark)
             QApplication.styleHints().setColorScheme(Qt.ColorScheme.Dark if self.dark else Qt.ColorScheme.Light)
+            if hasattr(self,'completer'):
+                self.completer.popup().setStyleSheet(f'QListView {{ background:{surface};color:{self.fg};border:1px solid {"#344354" if self.dark else "#c4d0db"};border-radius:10px;padding:6px;outline:0; }} QListView::item {{ min-height:34px;padding:0 12px;border-radius:7px; }} QListView::item:selected {{ background:{"#344354" if self.dark else "#e3edf7"};color:{self.fg}; }}')
             for tab in list(self.tabs.values())+([self.wa] if self.wa else []):
                 if tab.home:tab.home.update()
                 if tab.view:tab.view.page().setBackgroundColor(QColor(self.bg))

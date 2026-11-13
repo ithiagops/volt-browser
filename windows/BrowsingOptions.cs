@@ -12,6 +12,7 @@ sealed partial class BrowserWindow
         public List<string> History { get; set; } = new();
     }
     BrowsingPreferences browsing = new();
+    AddressSuggestions? addressSuggestions;
     int sleepMinutes => browsing.SleepMinutes;
     string BrowsingFile => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"VOLT","browsing.json");
     void LoadBrowsingPreferences()
@@ -44,7 +45,7 @@ sealed partial class BrowserWindow
         var values=bookmarks.Select(b=>b.Url).Concat(browsing.History).Where(SafeSuggestion)
             .SelectMany(url=>new[]{url,url[(url.IndexOf("://",StringComparison.Ordinal)+3)..]})
             .Distinct(StringComparer.OrdinalIgnoreCase).Take(500).ToArray();
-        address.AutoCompleteCustomSource.Clear();address.AutoCompleteCustomSource.AddRange(values);
+        addressSuggestions?.SetValues(values);
     }
     void RememberAddress(string url)
     {
@@ -65,8 +66,9 @@ sealed partial class BrowserWindow
     }
     void InitializeBrowsingOptions(ContextMenuStrip menu)
     {
-        address.AutoCompleteMode=AutoCompleteMode.Suggest;
-        address.AutoCompleteSource=AutoCompleteSource.CustomSource;
+        address.AutoCompleteMode=AutoCompleteMode.None;
+        address.AutoCompleteSource=AutoCompleteSource.None;
+        addressSuggestions=new AddressSuggestions(this,address,Navigate,darkMode);
         RefreshAddressSuggestions();
         var timeMenu=new ToolStripMenuItem("Tempo para hibernar");
         foreach(int minutes in new[]{1,5,10,15,30,0})

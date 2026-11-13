@@ -1,3 +1,13 @@
+# Verificação 0.6.5
+
+- Publicação Windows win-x64 concluída; 310 verificações C# de políticas e geometria passaram.
+- Testes de monitores simulam monitor à esquerda/acima, área útil deslocada, janela em monitor desconectado, meia tela e empacotamento de coordenadas assinadas do cursor.
+- Linux: 20 testes unitários, 41 verificações integradas e 24 verificações de endereços/hibernação passaram. Mais 8 verificações do acabamento nos dois temas usando entradas fictícias.
+- Interface Windows, encaixe nativo/Snap, mudanças reais de DPI e múltiplos monitores não são executáveis neste ambiente Linux. Exigem validação em Windows real.
+- A janela de senhas não exibe senhas em sua tabela; mantém somente site e usuário. Regras do cofre não foram alteradas.
+
+## Registros anteriores
+
 # Verificação da versão 0.6.4
 
 - Windows: compilação e publicação win-x64 sem avisos/erros, 301 verificações C# de política.

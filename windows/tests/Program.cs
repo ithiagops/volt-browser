@@ -166,4 +166,23 @@ Check(!ResourcePolicy.SleepDue(0,TimeSpan.FromDays(10)),"Nunca desativa hiberna�
 Check(!ResourcePolicy.PositionPriority(-1,3),"Índice ausente não recebe prioridade");
 Check(ResourcePolicy.PositionPriority(2,3) && !ResourcePolicy.PositionPriority(3,3),"Primeiras N abas têm prioridade");
 Check(!ResourcePolicy.PositionPriority(0,0),"Prioridade desativada por padrão");
+var primaryArea=new System.Drawing.Rectangle(0,0,1920,1040);
+var leftMonitor=new System.Drawing.Rectangle(-1920,-200,1920,1080);
+var leftWork=new System.Drawing.Rectangle(-1920,-160,1920,1040);
+Check(WindowPlacement.Maximized(leftMonitor,leftWork)==new System.Drawing.Rectangle(0,40,1920,1040),"Maximizar no monitor negativo usa deslocamento relativo");
+var rightMonitor=new System.Drawing.Rectangle(1920,100,2560,1440);
+Check(WindowPlacement.Maximized(rightMonitor,new(1960,100,2520,1440))==new System.Drawing.Rectangle(40,0,2520,1440),"Barra lateral do sistema respeitada no segundo monitor");
+var leftWindow=new System.Drawing.Rectangle(-1800,-120,1000,700);
+Check(WindowPlacement.EnsureVisible(leftWindow,new[]{primaryArea,leftWork},primaryArea)==leftWindow,"Coordenadas negativas válidas preservadas");
+var recovered=WindowPlacement.EnsureVisible(leftWindow,new[]{primaryArea},primaryArea);
+Check(primaryArea.Contains(recovered),"Janela de monitor desconectado volta à área visível");
+var tooLarge=WindowPlacement.EnsureVisible(new(-6000,3000,5000,3000),new[]{primaryArea},primaryArea);
+Check(tooLarge==primaryArea,"Janela fora da tela limitada à área de trabalho");
+var snap=new System.Drawing.Rectangle(0,0,960,1040);
+Check(WindowPlacement.EnsureVisible(snap,new[]{primaryArea},primaryArea)==snap,"Encaixe de meia tela preservado");
+foreach(var cursor in new[]{new System.Drawing.Point(-1500,-120),new System.Drawing.Point(2100,300),new System.Drawing.Point(0,0)})
+{
+    int packed=WindowPlacement.PackPoint(cursor);
+    Check((short)(packed&0xffff)==cursor.X && (short)((packed>>16)&0xffff)==cursor.Y,"Arraste conserva coordenadas assinadas entre monitores");
+}
 Console.WriteLine($"{checks} verificações passaram.");

@@ -48,16 +48,68 @@ sealed partial class BrowserWindow
     }
     void ToggleMaximize()
     {
-        MaximizedBounds=Screen.FromHandle(Handle).WorkingArea;
         WindowState=WindowState==FormWindowState.Maximized?FormWindowState.Normal:FormWindowState.Maximized;
     }
     void DragWindow()
     {
-        ReleaseCapture();SendMessage(Handle,0xA1,(IntPtr)2,IntPtr.Zero);
+        BeginWindowDrag(this);
+    }
+    static void BeginWindowDrag(Form window)
+    {
+        var cursor=Cursor.Position;ReleaseCapture();
+        SendMessage(window.Handle,0xA1,(IntPtr)2,(IntPtr)WindowPlacement.PackPoint(cursor));
+    }
+    // Keep the shell's resizing/snap contract while painting our own title bar.
+    protected override CreateParams CreateParams
+    {
+        get {var p=base.CreateParams;p.Style|=0x00C00000|0x00040000|0x00080000|0x00020000|0x00010000;return p;}
+    }
+    [StructLayout(LayoutKind.Sequential)] struct NativePoint {public int X,Y;}
+    [StructLayout(LayoutKind.Sequential)] struct MinMaxInfo {public NativePoint Reserved,MaxSize,MaxPosition,MinTrackSize,MaxTrackSize;}
+    [StructLayout(LayoutKind.Sequential)] struct NativeRect {public int Left,Top,Right,Bottom;public Rectangle Rect=>Rectangle.FromLTRB(Left,Top,Right,Bottom);}
+    [StructLayout(LayoutKind.Sequential)] struct MonitorInfo {public int Size;public NativeRect Monitor,Work;public uint Flags;}
+    [DllImport("user32.dll")] static extern IntPtr MonitorFromWindow(IntPtr window,uint flags);
+    [DllImport("user32.dll",CharSet=CharSet.Auto)] static extern bool GetMonitorInfo(IntPtr monitor,ref MonitorInfo info);
+    void InitializeWindowPlacement()
+    {
+        Microsoft.Win32.SystemEvents.DisplaySettingsChanged+=DisplaysChanged;
+        FormClosed+=(_,_)=>Microsoft.Win32.SystemEvents.DisplaySettingsChanged-=DisplaysChanged;
+        Shown+=(_,_)=>RecoverWindowPlacement();ResizeEnd+=(_,_)=>RecoverWindowPlacement();
+    }
+    void DisplaysChanged(object? sender,EventArgs e)
+    {if(!closing && IsHandleCreated)try{BeginInvoke(new Action(RecoverWindowPlacement));}catch(InvalidOperationException){}}
+    void RecoverWindowPlacement()
+    {
+        if(closing || WindowState==FormWindowState.Minimized)return;
+        var screens=Screen.AllScreens;var preferred=Screen.FromPoint(Cursor.Position).WorkingArea;
+        var safe=WindowPlacement.EnsureVisible(Bounds,screens.Select(s=>s.WorkingArea),preferred);
+        if(safe==Bounds)return;
+        WindowState=FormWindowState.Normal;Bounds=safe;
+    }
+    protected override void OnDpiChanged(DpiChangedEventArgs e)
+    {
+        base.OnDpiChanged(e);
+        if(IsHandleCreated && !closing)BeginInvoke(new Action(RecoverWindowPlacement));
     }
     protected override void WndProc(ref Message m)
     {
+        if(m.Msg==0x83){m.Result=IntPtr.Zero;return;} // WM_NCCALCSIZE: client fills the custom frame.
         base.WndProc(ref m);
+        if(m.Msg==0x24 && m.LParam!=IntPtr.Zero)
+        {
+            var info=new MonitorInfo {Size=Marshal.SizeOf<MonitorInfo>()};
+            if(GetMonitorInfo(MonitorFromWindow(Handle,2),ref info))
+            {
+                var limits=Marshal.PtrToStructure<MinMaxInfo>(m.LParam);
+                var max=WindowPlacement.Maximized(info.Monitor.Rect,info.Work.Rect);
+                limits.MaxPosition=new NativePoint {X=max.X,Y=max.Y};limits.MaxSize=new NativePoint {X=max.Width,Y=max.Height};
+                // Half-screen snap must remain possible even on smaller or scaled monitors.
+                limits.MinTrackSize.X=Math.Min(limits.MinTrackSize.X,Math.Max(1,info.Work.Rect.Width/2));
+                limits.MinTrackSize.Y=Math.Min(limits.MinTrackSize.Y,Math.Max(1,info.Work.Rect.Height/2));
+                Marshal.StructureToPtr(limits,m.LParam,false);m.Result=IntPtr.Zero;
+            }
+            return;
+        }
         if(m.Msg!=0x84 || WindowState!=FormWindowState.Normal || (int)m.Result!=1) return;
         long raw=m.LParam.ToInt64();var pt=PointToClient(new Point((short)(raw&0xffff),(short)((raw>>16)&0xffff)));
         int edge=(int)Math.Ceiling(6*DeviceDpi/96f);bool l=pt.X<edge,r=pt.X>=ClientSize.Width-edge,t=pt.Y<edge,b=pt.Y>=ClientSize.Height-edge;
