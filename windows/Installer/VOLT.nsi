@@ -3,10 +3,10 @@ Unicode true
 !include "LogicLib.nsh"
 !include "x64.nsh"
 !ifndef PAYLOAD
-  !define PAYLOAD "..\dist\VOLT-0.6.5"
+  !define PAYLOAD "..\dist\VOLT-0.6.6"
 !endif
 !ifndef OUTPUT
-  !define OUTPUT "..\..\VOLT-0.6.5-Setup.exe"
+  !define OUTPUT "..\..\VOLT-0.6.6-Setup.exe"
 !endif
 Var RuntimeVersion
 Var InstallMessage
@@ -21,10 +21,10 @@ SetCompressor /SOLID lzma
 SetCompressorDictSize 32
 Icon "..\Assets\Volt.ico"
 UninstallIcon "..\Assets\Volt.ico"
-VIProductVersion "0.6.5.0"
+VIProductVersion "0.6.6.0"
 VIAddVersionKey /LANG=1046 "ProductName" "VOLT"
-VIAddVersionKey /LANG=1046 "FileDescription" "Instalador do VOLT 0.6.5"
-VIAddVersionKey /LANG=1046 "FileVersion" "0.6.5"
+VIAddVersionKey /LANG=1046 "FileDescription" "Instalador do VOLT 0.6.6"
+VIAddVersionKey /LANG=1046 "FileVersion" "0.6.6"
 VIAddVersionKey /LANG=1046 "LegalCopyright" "VOLT"
 !define MUI_ABORTWARNING
 !define MUI_WELCOMEPAGE_TEXT "$InstallMessage"
@@ -113,7 +113,7 @@ Section "VOLT" Main
   CreateShortcut "$SMPROGRAMS\VOLT\Desinstalar VOLT.lnk" "$INSTDIR\Desinstalar-VOLT.exe"
   WriteRegStr HKCU "Software\VOLT\Installer" "Location" "$INSTDIR"
   WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\VOLT" "DisplayName" "VOLT"
-  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\VOLT" "DisplayVersion" "0.6.5"
+  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\VOLT" "DisplayVersion" "0.6.6"
   WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\VOLT" "DisplayIcon" "$INSTDIR\app\VOLT.exe,0"
   WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\VOLT" "InstallLocation" "$INSTDIR"
   WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\VOLT" "UninstallString" '$\"$INSTDIR\Desinstalar-VOLT.exe$\"'

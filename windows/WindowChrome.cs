@@ -68,6 +68,8 @@ sealed partial class BrowserWindow
     [StructLayout(LayoutKind.Sequential)] struct MinMaxInfo {public NativePoint Reserved,MaxSize,MaxPosition,MinTrackSize,MaxTrackSize;}
     [StructLayout(LayoutKind.Sequential)] struct NativeRect {public int Left,Top,Right,Bottom;public Rectangle Rect=>Rectangle.FromLTRB(Left,Top,Right,Bottom);}
     [StructLayout(LayoutKind.Sequential)] struct MonitorInfo {public int Size;public NativeRect Monitor,Work;public uint Flags;}
+    [DllImport("user32.dll")] static extern bool IsZoomed(IntPtr window);
+    [DllImport("user32.dll")] static extern IntPtr MonitorFromRect(ref NativeRect rect,uint flags);
     [DllImport("user32.dll")] static extern IntPtr MonitorFromWindow(IntPtr window,uint flags);
     [DllImport("user32.dll",CharSet=CharSet.Auto)] static extern bool GetMonitorInfo(IntPtr monitor,ref MonitorInfo info);
     void InitializeWindowPlacement()
@@ -93,7 +95,23 @@ sealed partial class BrowserWindow
     }
     protected override void WndProc(ref Message m)
     {
-        if(m.Msg==0x83){m.Result=IntPtr.Zero;return;} // WM_NCCALCSIZE: client fills the custom frame.
+        if(m.Msg==0x83)
+        {
+            // Maximized thick frames can extend outside the desktop. Keep all custom
+            // chrome inside the monitor work area instead of painting into that overscan.
+            if(m.WParam!=IntPtr.Zero && m.LParam!=IntPtr.Zero && IsZoomed(m.HWnd))
+            {
+                var proposed=Marshal.PtrToStructure<NativeRect>(m.LParam);
+                var info=new MonitorInfo {Size=Marshal.SizeOf<MonitorInfo>()};
+                if(GetMonitorInfo(MonitorFromRect(ref proposed,2),ref info))
+                {
+                    var client=WindowPlacement.MaximizedClient(proposed.Rect,info.Work.Rect);
+                    proposed.Left=client.Left;proposed.Top=client.Top;proposed.Right=client.Right;proposed.Bottom=client.Bottom;
+                    Marshal.StructureToPtr(proposed,m.LParam,false);
+                }
+            }
+            m.Result=IntPtr.Zero;return;
+        }
         base.WndProc(ref m);
         if(m.Msg==0x24 && m.LParam!=IntPtr.Zero)
         {

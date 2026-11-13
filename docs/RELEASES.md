@@ -1,7 +1,10 @@
-# VOLT 0.6.5 — experimental
+# VOLT 0.6.6 — experimental
 
-Novidades: sugestões de endereço acompanhando o tema, acabamento do gerenciador de senhas, estilos de encaixe nativo do Windows, coordenadas de maximização e arraste entre monitores corrigidas, recuperação de janelas em monitores desconectados. Mantém pasta padrão e atualização na instalação existente.
+- Janela de senhas mais compacta, com estado vazio sem tabela, cadeado e uma ação de importação em destaque. Lista e ações aparecem somente quando há logins.
+- Botão de fechar do cofre com tamanho fixo, sem ocupar a altura inteira do cabeçalho.
+- No Windows, a área cliente maximizada exclui a margem nativa fora da área útil do monitor para preservar o topo da interface.
+- Mantém sugestões temáticas, estilos de Snap, tratamento de múltiplos monitores e atualização na pasta existente.
 
-Binários desta revisão: `VOLT-0.6.5-Setup.exe` e `VOLT-0.6.5-x86_64.AppImage` (Linux x86_64, glibc 2.39+).
+Binários desta revisão: `VOLT-0.6.6-Setup.exe` e `VOLT-0.6.6-x86_64.AppImage` (Linux x86_64, glibc 2.39+).
 
-O Windows foi compilado em Linux; Snap, múltiplos monitores, DPI e os novos controles precisam de validação em Windows real. Linux foi verificado offscreen. Não há benchmark comparativo de RAM.
+Compilação Windows e 313 verificações C# de políticas/geometria passaram; Linux: 41 verificações integradas e 12 verificações do acabamento nos dois temas. Os controles e a maximização reais precisam ser validados em Windows. O ambiente de desenvolvimento é Linux.

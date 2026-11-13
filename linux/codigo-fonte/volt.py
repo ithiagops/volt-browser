@@ -13,7 +13,7 @@ from PySide6.QtSvg import QSvgRenderer
 from policy import address,is_tracker,move_block,survivor,eligible,pressure,process_memory,sleep_due,position_priority,safe_history_url
 BASE=Path(getattr(sys,'_MEIPASS',Path(__file__).resolve().parent))
 ASSETS=BASE/'assets'
-VERSION='0.6.5 Linux'
+VERSION='0.6.6 Linux'
 ACTIVE=QWebEnginePage.LifecycleState.Active
 FROZEN=QWebEnginePage.LifecycleState.Frozen
 DISCARDED=QWebEnginePage.LifecycleState.Discarded

@@ -26,5 +26,5 @@ for dark in (True,False):
  check(d.table.topLevelItemCount()==1,'vault entries rendered')
  check(d.table.columnCount()==2 and d.table.topLevelItem(0).text(1)=='usuario@exemplo.test','only site and username shown')
  check('FAKE-ONLY' not in d.table.topLevelItem(0).text(0)+d.table.topLevelItem(0).text(1),'secret not visible')
- d.grab().save('/tmp/volt-vault-'+('dark' if dark else 'light')+'.png');d.reject();d.entries.clear();d.deleteLater();app.processEvents()
+ d.grab().save('/tmp/volt-vault-'+('dark' if dark else 'light')+'.png');d.loaded([]);check(not d.table.isVisible() and d.empty.isVisible(),'empty vault hides unused table');check(not d.fill.isVisible() and d.empty_import.isVisible(),'empty vault has one import action');d.grab().save('/tmp/volt-vault-empty-'+('dark' if dark else 'light')+'.png');d.reject();d.entries.clear();d.deleteLater();app.processEvents()
 w.close();app.processEvents();print(json.dumps({'passed':len(checks),'checks':checks}))

@@ -185,4 +185,7 @@ foreach(var cursor in new[]{new System.Drawing.Point(-1500,-120),new System.Draw
     int packed=WindowPlacement.PackPoint(cursor);
     Check((short)(packed&0xffff)==cursor.X && (short)((packed>>16)&0xffff)==cursor.Y,"Arraste conserva coordenadas assinadas entre monitores");
 }
+Check(WindowPlacement.MaximizedClient(new(-8,-8,1936,1056),new(0,0,1920,1040))==new System.Drawing.Rectangle(0,0,1920,1040),"Maximizada remove margem nativa sem cortar topo");
+Check(WindowPlacement.MaximizedClient(new(-1928,-208,1936,1096),new(-1920,-160,1920,1040))==new System.Drawing.Rectangle(-1920,-160,1920,1040),"Área interna maximizada respeita monitor negativo");
+Check(WindowPlacement.MaximizedClient(primaryArea,primaryArea)==primaryArea,"Janela já alinhada não ganha margem adicional");
 Console.WriteLine($"{checks} verificações passaram.");

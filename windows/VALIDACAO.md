@@ -1,3 +1,9 @@
+# Verificação 0.6.6
+
+Compilação e publicação win-x64 concluídas; 313 verificações C# passaram, incluindo três casos de recorte da área cliente maximizada. Linux: 41 verificações integradas e 12 verificações do acabamento (dois temas, estados vazio/preenchido e ausência de senha nas colunas). O novo estado vazio não mostra tabela nem ações desabilitadas. A interface nativa e o corte em maximização precisam de validação em Windows real.
+
+## Registros anteriores
+
 # Verificação 0.6.5
 
 - Publicação Windows win-x64 concluída; 310 verificações C# de políticas e geometria passaram.

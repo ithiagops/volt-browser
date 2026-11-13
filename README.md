@@ -4,12 +4,12 @@ Navegador para Windows e Linux com foco em velocidade, uso consciente de memóri
 interface leve e minimalista. O projeto combina gerenciamento de abas, economia automática
 de RAM e WhatsApp integrado à barra lateral.
 
-**Versão atual do código: 0.6.5 — experimental.**
+**Versão atual do código: 0.6.6 — experimental.**
 
 A faixa de abas aceita cliques até seu topo; fechar uma aba ou grupo não abre uma
 confirmação genérica do VOLT. Dados temporários da aba fechada podem ser perdidos.
 
-## Abas, memória e endereços — 0.6.5
+## Abas, memória e endereços — 0.6.6
 
 - **Menu → Tempo para hibernar:** 1, 5 (padrão), 10, 15 ou 30 minutos; Nunca desliga a hibernação por tempo. A verificação ocorre a cada 15 segundos. Suspensão conserva a página; economia forte descarta e recarrega ao voltar.
 - **Primeiras abas protegidas…:** de 0 (padrão) a 100 abas da esquerda para a direita. A proteção acompanha a ordem atual e vale também para limpeza por RAM e liberação manual. Uma página já descartada é recarregada quando ganha prioridade.
@@ -80,7 +80,7 @@ Requer SDK .NET 10 para desenvolvimento e WebView2 Runtime para navegar.
 ```powershell
 dotnet run --project windows/VOLT.csproj
 dotnet run --project windows/tests/PolicyChecks.csproj -c Release
-dotnet publish windows/VOLT.csproj -c Release -r win-x64 --self-contained true -o windows/dist/VOLT-0.6.5
+dotnet publish windows/VOLT.csproj -c Release -r win-x64 --self-contained true -o windows/dist/VOLT-0.6.6
 ```
 
 Para gerar o instalador, instale NSIS 3.11 ou compatível e execute:
@@ -148,8 +148,12 @@ uma licença geral para o código do VOLT.
 
 O instalador usa `%LocalAppData%\Programs\VOLT` na primeira instalação. Quando encontra uma instalação existente registrada (ou na pasta padrão), informa o local na tela inicial e atualiza essa mesma pasta, sem solicitar outro destino. Favoritos, configurações, perfil e cofre ficam separados em `%LocalAppData%\VOLT`. Feche o VOLT antes de atualizar.
 
-## Acabamento e janelas — 0.6.5
+## Acabamento e janelas — 0.6.6
 
 As sugestões de endereço têm painel próprio no Windows e estilo explícito no Linux, com fundo e seleção seguindo o tema. O gerenciador de senhas tem cabeçalho, espaçamento, lista e botões reformulados; as regras do cofre e preenchimento não mudaram.
 
 No Windows, a janela volta a informar os estilos nativos de redimensionamento e encaixe. O cálculo de maximização respeita a área útil do monitor, incluindo monitores em posições negativas. O arraste transmite a posição real do cursor e janelas em monitores desconectados são recuperadas para uma área visível. Win + setas e Win + Shift + setas são tratados pelo próprio Windows; dependem de o encaixe de janelas estar habilitado no sistema. O comportamento nativo precisa de teste em Windows real com dois monitores.
+
+## Ajustes 0.6.6
+
+O cofre vazio agora apresenta uma única ação de importação, sem tabela nem ações desabilitadas. A lista só aparece quando existem logins. No Windows, a área cliente maximizada é limitada à área útil do monitor para não desenhar abas e botões na margem externa da borda nativa. O novo cálculo foi testado com coordenadas positivas e negativas; a aparência real de maximização exige teste em Windows.

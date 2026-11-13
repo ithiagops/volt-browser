@@ -7,6 +7,11 @@ static class WindowPlacement
     // Native max position is a monitor-relative offset, not a virtual-desktop coordinate.
     public static Rectangle Maximized(Rectangle monitor,Rectangle work)
         => new(work.Left-monitor.Left,work.Top-monitor.Top,work.Width,work.Height);
+    public static Rectangle MaximizedClient(Rectangle proposed,Rectangle work)
+    {
+        var client=Rectangle.Intersect(proposed,work);
+        return client.Width>0 && client.Height>0?client:proposed;
+    }
     public static Rectangle EnsureVisible(Rectangle window,IEnumerable<Rectangle> workAreas,Rectangle preferred)
     {
         var title=new Rectangle(window.X,window.Y,window.Width,Math.Min(36,window.Height));
