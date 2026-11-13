@@ -143,3 +143,7 @@ de validação específica. Não há atualizador automático de versões do apli
 As bibliotecas mantêm suas próprias licenças. Os avisos de Qt/PySide6 e outros componentes
 incluídos na distribuição Linux estão em `linux/LICENCAS/`. O projeto ainda não definiu
 uma licença geral para o código do VOLT.
+
+## Local de instalação no Windows
+
+O instalador usa `%LocalAppData%\Programs\VOLT` na primeira instalação. Quando encontra uma instalação existente registrada (ou na pasta padrão), informa o local na tela inicial e atualiza essa mesma pasta, sem solicitar outro destino. Favoritos, configurações, perfil e cofre ficam separados em `%LocalAppData%\VOLT`. Feche o VOLT antes de atualizar.

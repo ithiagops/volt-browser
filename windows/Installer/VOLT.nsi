@@ -23,10 +23,12 @@ VIAddVersionKey /LANG=1046 "FileDescription" "Instalador do VOLT 0.6.4"
 VIAddVersionKey /LANG=1046 "FileVersion" "0.6.4"
 VIAddVersionKey /LANG=1046 "LegalCopyright" "VOLT"
 !define MUI_ABORTWARNING
-!define MUI_WELCOMEPAGE_TEXT "Este assistente instala o VOLT para seu usuário e cria atalhos no menu Iniciar e na área de trabalho.$\r$\n$\r$\nFeche o VOLT antes de continuar.$\r$\n$\r$\nSe o WebView2 estiver ausente, sua instalação exige internet."
+!define MUI_WELCOMEPAGE_TEXT "$InstallMessage"
 !define MUI_FINISHPAGE_RUN "$INSTDIR\app\VOLT.exe"
 !define MUI_FINISHPAGE_RUN_TEXT "Abrir o VOLT"
 !insertmacro MUI_PAGE_WELCOME
+!define MUI_PAGE_CUSTOMFUNCTION_PRE DirectoryPagePre
+!define MUI_DIRECTORYPAGE_TEXT_TOP "Esta é a pasta padrão do VOLT. Mantenha este local para facilitar as próximas atualizações."
 !insertmacro MUI_PAGE_DIRECTORY
 !insertmacro MUI_PAGE_INSTFILES
 !insertmacro MUI_PAGE_FINISH
@@ -34,12 +36,42 @@ VIAddVersionKey /LANG=1046 "LegalCopyright" "VOLT"
 !insertmacro MUI_UNPAGE_INSTFILES
 !insertmacro MUI_LANGUAGE "PortugueseBR"
 Var RuntimeVersion
+Var InstallMessage
+Var ExistingLocation
+Var Updating
 Function .onInit
   ${IfNot} ${RunningX64}
     MessageBox MB_ICONSTOP "Esta versão do VOLT requer Windows de 64 bits."
     Abort
   ${EndIf}
   SetShellVarContext current
+  SetRegView 32
+  StrCpy $Updating 0
+  ReadRegStr $ExistingLocation HKCU "Software\VOLT\Installer" "Location"
+  ${If} $ExistingLocation == ""
+    ReadRegStr $ExistingLocation HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\VOLT" "InstallLocation"
+  ${EndIf}
+  ${If} $ExistingLocation != ""
+    IfFileExists "$ExistingLocation\app\VOLT.exe" existing_found default_check
+  ${EndIf}
+  default_check:
+    StrCpy $ExistingLocation "$LOCALAPPDATA\Programs\VOLT"
+    IfFileExists "$ExistingLocation\app\VOLT.exe" existing_found new_install
+  existing_found:
+    StrCpy $INSTDIR $ExistingLocation
+    StrCpy $Updating 1
+    StrCpy $InstallMessage "O VOLT já está instalado. Este assistente vai atualizar o programa no mesmo local, sem criar outra cópia.$\r$\n$\r$\nLocal: $INSTDIR$\r$\n$\r$\nFeche o VOLT antes de continuar. Seus favoritos, configurações e perfil serão preservados."
+    Goto init_done
+  new_install:
+    StrCpy $INSTDIR "$LOCALAPPDATA\Programs\VOLT"
+    StrCpy $InstallMessage "O VOLT será instalado na pasta padrão do seu usuário:$\r$\n$\r$\n$INSTDIR$\r$\n$\r$\nSerão criados atalhos no menu Iniciar e na área de trabalho. Feche o VOLT antes de continuar. Se o WebView2 estiver ausente, será necessária internet."
+  init_done:
+FunctionEnd
+Function DirectoryPagePre
+  ; Updates reuse the registered installation and never offer a second location.
+  ${If} $Updating == 1
+    Abort
+  ${EndIf}
 FunctionEnd
 Function EnsureWebView
   SetRegView 32
