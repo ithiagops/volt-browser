@@ -196,7 +196,17 @@ sealed class BrowserTabsHeader : Control
         }
         else
         { using var divider = new Pen(Dark ? Color.FromArgb(64, 78, 96) : Color.FromArgb(182, 197, 209)); g.DrawLine(divider, b.Right, b.Top + Px(8), b.Right, b.Bottom - Px(8)); }
-        var text = new Rectangle((int)(b.X + Px(10)), (int)b.Y, Math.Max(0, (int)(b.Width - Px(38))), (int)b.Height);
+        float iconSize=Px(16), iconX=b.X+Px(10), iconY=b.Y+(b.Height-iconSize)/2;
+        if(page.Tag is BrowserTab { Favicon: { } icon })
+            g.DrawImage(icon,new RectangleF(iconX,iconY,iconSize,iconSize));
+        else
+        {
+            using var globe=new Pen(Blend(BackColor,ForeColor,opacity),Math.Max(1,Px(1)));
+            var globeBox=new RectangleF(iconX+Px(2),iconY+Px(2),Px(12),Px(12));
+            g.DrawEllipse(globe,globeBox);g.DrawLine(globe,globeBox.Left,globeBox.Top+Px(6),globeBox.Right,globeBox.Top+Px(6));
+            g.DrawEllipse(globe,iconX+Px(5),iconY+Px(2),Px(6),Px(12));
+        }
+        var text = new Rectangle((int)(b.X + Px(32)), (int)b.Y, Math.Max(0, (int)(b.Width - Px(60))), (int)b.Height);
         TextRenderer.DrawText(g, page.Text, Font, text, Blend(BackColor, ForeColor, opacity), TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPrefix);
         if (page == hover || ghost)
         {

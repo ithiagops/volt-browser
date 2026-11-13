@@ -1,22 +1,13 @@
-# Distribuição 0.6.3
+# VOLT 0.6.4 — experimental
 
-Crie uma Release com tag `v0.6.3` depois de enviar o código-fonte.
-Confirme a branch/commit que corresponde aos pacotes e marque a versão como experimental
-(pre-release) enquanto a validação no computador real estiver pendente.
+Tag sugerida: `v0.6.4`, baseada no commit atual de `main`.
 
-Arquivos de distribuição produzidos anteriormente:
+Novidades Windows e Linux: prazo de hibernação configurável (padrão 5 minutos), prioridade das primeiras N abas, sugestões locais de endereços e favicons de 16 × 16. Inclui área clicável do botão + até o topo. Limpeza por RAM continua independente do prazo e respeita a prioridade.
 
-- `VOLT-0.6.3-Setup.exe` — instalador Windows por usuário.
-- `VOLT-0.6.3-Windows.zip` — Windows portátil e código-fonte.
-- `VOLT-0.6.3-x86_64.AppImage` — Linux x86_64, glibc 2.39+.
-- `VOLT-0.6.3-Linux-x86_64.tar.gz` — pacote Linux com alternativa por Python.
+Arquivos de distribuição devem ser gerados desta revisão:
+- `VOLT-0.6.4-Setup.exe`: instalador Windows x64.
+- `VOLT-0.6.4-x86_64.AppImage`: Linux x86_64, glibc 2.39+.
 
-Anexe esses arquivos como assets da Release, e não pelo envio de arquivos do repositório.
-Os pacotes não são gerados nem publicados automaticamente por este repositório.
+Não reutilize os binários 0.6.3: eles não contêm estas mudanças. A publicação em Releases é separada do envio do código.
 
-Notas sugeridas: importação de senhas CSV com armazenamento do sistema e preenchimento por ação do usuário; área clicável das abas até o topo; fechar sem confirmação genérica; painel do WhatsApp sobreposto, página sem redimensionamento ao ocultar,
-fechamento ao clicar fora, SVG oficial enviado para o botão e distribuição Windows/Linux.
-
-O código-fonte do instalador está em `windows/Installer/VOLT.nsi`. Seu bootstrapper
-WebView2 é baixado pelo script `build.ps1`, a partir do endereço oficial da Microsoft;
-não é versionado no Git.
+Verificação: compilação Windows sem avisos/erros, verificações C# de política, testes Python e testes integrados offscreen do Linux. Interface e armazenamento nativo do Windows ainda exigem teste em Windows real. Linux precisa de Secret Service disponível/desbloqueado para o cofre de senhas.

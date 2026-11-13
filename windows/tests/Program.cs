@@ -157,4 +157,13 @@ try
     Check(duplicateRejected,"Reject duplicate export headers");
 }
 finally{File.Delete(passwordCsv);}
+foreach(int minutes in new[]{1,5,10,15,30})
+{
+    Check(!ResourcePolicy.SleepDue(minutes,TimeSpan.FromSeconds(minutes*60-1)),"Prazo configurável preserva até o limite");
+    Check(ResourcePolicy.SleepDue(minutes,TimeSpan.FromMinutes(minutes)),"Prazo configurável permite hibernação no limite");
+}
+Check(!ResourcePolicy.SleepDue(0,TimeSpan.FromDays(10)),"Nunca desativa hibernação por tempo");
+Check(!ResourcePolicy.PositionPriority(-1,3),"Índice ausente não recebe prioridade");
+Check(ResourcePolicy.PositionPriority(2,3) && !ResourcePolicy.PositionPriority(3,3),"Primeiras N abas têm prioridade");
+Check(!ResourcePolicy.PositionPriority(0,0),"Prioridade desativada por padrão");
 Console.WriteLine($"{checks} verificações passaram.");

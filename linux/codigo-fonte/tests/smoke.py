@@ -44,7 +44,7 @@ def run():
    one=w.new_tab();one.ensure_view();two=w.new_tab();two.ensure_view();group={one.ident,two.ident};w.close_tabs(group);check(not group.intersection(w.tabs),'loaded group closes without generic confirmation')
   finally:QMessageBox.question=old_question;QMessageBox.information=old_information
   w.activate(first)
-  page=t.view.page();bg=w.new_tab();t.hidden=time.monotonic()-60;w.sweep();check(page.lifecycleState()==FROZEN,'hidden idle page freezes')
+  page=t.view.page();bg=w.new_tab();t.hidden=time.monotonic()-301;w.sweep();check(page.lifecycleState()==FROZEN,'hidden idle page freezes')
   w.release();check(page.lifecycleState()==DISCARDED,'manual release discards inactive page');w.activate(first);check(page.lifecycleState()==ACTIVE,'activation restores discarded page')
   # Save image of live engine and native chrome without contacting real services.
   page.setHtml('<html><body style="background:#181e27;color:white;font:24px sans-serif">VOLT — motor Chromium funcionando</body></html>');wait_until(lambda:not t.loading)

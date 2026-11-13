@@ -187,7 +187,7 @@ sealed partial class BrowserWindow
     }
     async Task SweepWhatsApp()
     {
-        if(closing || !economy || DateTime.UtcNow-whatsAppHiddenSince<TimeSpan.FromSeconds(45) || !CanReleaseWhatsApp())return;
+        if(closing || !economy || !ResourcePolicy.SleepDue(sleepMinutes,DateTime.UtcNow-whatsAppHiddenSince) || !CanReleaseWhatsApp())return;
         var view=whatsAppView!;
         whatsAppBusy=true;
         try

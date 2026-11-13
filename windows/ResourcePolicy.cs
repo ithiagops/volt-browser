@@ -26,6 +26,10 @@ static class ResourcePolicy
     public static bool CanSleep(bool selected, bool ready, bool loading, bool pinned, int downloads, bool audio)
         => !selected && ready && !loading && !pinned && downloads == 0 && !audio;
 
+    public static bool SleepDue(int minutes, TimeSpan inactive)
+        => minutes > 0 && inactive >= TimeSpan.FromMinutes(minutes);
+    public static bool PositionPriority(int index, int count) => index >= 0 && index < Math.Clamp(count,0,100);
+
     public static int NewTabIndex(int selectedIndex, int count)
         => Math.Clamp(selectedIndex + 1, 0, count);
 

@@ -38,6 +38,8 @@ sealed class BrowserTab
     public BrowserView? View { get; set; }
     public string? Url { get; set; }
     public string Title { get; set; } = "Nova guia";
+    public Image? Favicon { get; set; }
+    public int IconRevision { get; set; }
     public bool Unloaded { get; set; }
     public string SleepResult { get; set; } = "Aguardando";
     public DateTime LoadStarted { get; set; }
@@ -91,6 +93,7 @@ sealed partial class BrowserWindow : Form
 
     public BrowserWindow()
     {
+        LoadBrowsingPreferences();
         Text = "VOLT — Navegue sem peso";
         using(var iconStream=typeof(BrowserWindow).Assembly.GetManifestResourceStream("Volt.AppIcon")!)
         using(var embeddedIcon=new Icon(iconStream)) Icon=(Icon)embeddedIcon.Clone();
@@ -203,7 +206,7 @@ sealed partial class BrowserWindow : Form
         popup.Items.Add(dark);
         BrowserTheme.Apply(this, darkMode);
         if (darkMode) { popup.Renderer = new ToolStripProfessionalRenderer(new DarkMenuColors()); popup.BackColor = BrowserTheme.Surface; popup.ForeColor = BrowserTheme.Text; }
-        var saver = new ToolStripMenuItem("Suspender abas paradas (após 45 segundos)") { Checked = true, CheckOnClick = true };
+        var saver = new ToolStripMenuItem("Suspender abas paradas") { Checked = true, CheckOnClick = true };
         saver.CheckedChanged += (_, _) => { economy = saver.Checked; if (!economy) foreach (var tab in items.Values) if (tab.Ready) tab.View!.CoreWebView2.Resume(); UpdateChrome(); };
         pin.CheckedChanged += (_, _) => { if (Current is { } tab) tab.KeepAwake = pin.Checked; };
         popup.Items.Add(saver); popup.Items.Add(pin);
@@ -225,11 +228,11 @@ sealed partial class BrowserWindow : Form
         blockers.CheckedChanged += (_, _) => { blockTrackers = blockers.Checked; UpdateChrome(); };
         popup.Items.Add(blockers);
         popup.Items.Add("Liberar abas em segundo plano...", null, (_, _) => UnloadBackgroundTabs());
-        var deep = new ToolStripMenuItem("Economia forte: meta de 2 páginas carregadas") { CheckOnClick = false };
+        var deep = new ToolStripMenuItem("Economia forte: descartar após o prazo") { CheckOnClick = false };
         deep.Click += (_, _) =>
         {
             if (!deepEconomy && MessageBox.Show(this,
-                "Ativar economia forte? Acima de 2 páginas carregadas, abas elegíveis paradas há pelo menos 45 segundos serão descartadas, começando pelas menos recentes. As demais podem ser liberadas após 3 minutos. Elas recarregam ao voltar. Áudio, downloads e abas marcadas como ativas podem manter o total acima de 2. Histórico da aba, formulários, rolagem e posição de vídeo podem ser perdidos. Marque Manter esta aba ativa para editores, uploads, chamadas e mensagens importantes. A detecção dessas atividades não é completa. Áudio, downloads e carregamentos têm proteção.",
+                "Ativar economia forte? Abas elegíveis serão descartadas depois do prazo configurado no menu, começando pelas menos recentes. A opção Nunca desativa o descarte por tempo. Elas recarregam ao voltar. Áudio, downloads e abas marcadas como ativas podem manter o total acima de 2. Histórico da aba, formulários, rolagem e posição de vídeo podem ser perdidos. Marque Manter esta aba ativa para editores, uploads, chamadas e mensagens importantes. A detecção dessas atividades não é completa. Áudio, downloads e carregamentos têm proteção.",
                 "Economia forte", MessageBoxButtons.YesNo, MessageBoxIcon.Information) != DialogResult.Yes) return;
             deepEconomy = !deepEconomy; deep.Checked = deepEconomy; UpdateChrome();
         };
@@ -239,12 +242,13 @@ sealed partial class BrowserWindow : Form
         popup.Items.Add(automatic);
         popup.Items.Add("Diagnóstico das abas", null, (_, _) => ShowTabDiagnostics());
         popup.Items.Add("Memória e otimizações", null, (_, _) => MessageBox.Show(this,
-            "VOLT 0.6.3 • versão experimental\n\nInício nativo: novas abas não carregam WebView2. Abas ocultas são candidatas à suspensão após 45 segundos. Economia forte busca manter até 2 páginas carregadas, liberando excedentes elegíveis após 45 segundos; outras páginas podem ser liberadas após 3 minutos. Áudio, downloads, carregamento e abas marcadas como ativas são preservados.\n\nLiberar abas em segundo plano descarta a página e exige recarregar ao voltar. Use só depois de salvar seu trabalho e terminar uploads/chamadas. Também pode ser automatizado pelo modo opcional de economia forte.\n\nRAM estimada: soma do Working Set do VOLT e dos processos do mesmo perfil WebView2. Pode contar memória compartilhada mais de uma vez; difere do Gerenciador de Tarefas e não inclui crashpad. Se outra janela VOLT compartilhar o perfil, o motor compartilhado também entra na soma.\n\nO bloqueio usa uma pequena lista local de domínios. Se um site falhar, desligue a opção e recarregue. Não é um bloqueador completo de anúncios.\n\nGanho ainda não medido no Windows.", "VOLT"));
+            "VOLT 0.6.4 • versão experimental\n\nInício nativo: novas abas não carregam WebView2. O prazo de hibernação é configurável no menu. Economia forte descarta abas elegíveis após esse prazo. As primeiras N abas podem ser protegidas pela posição. A limpeza por pressão de RAM é independente do prazo. Áudio, downloads, carregamento e abas marcadas como ativas são preservados.\n\nLiberar abas em segundo plano descarta a página e exige recarregar ao voltar. Use só depois de salvar seu trabalho e terminar uploads/chamadas. Também pode ser automatizado pelo modo opcional de economia forte.\n\nRAM estimada: soma do Working Set do VOLT e dos processos do mesmo perfil WebView2. Pode contar memória compartilhada mais de uma vez; difere do Gerenciador de Tarefas e não inclui crashpad. Se outra janela VOLT compartilhar o perfil, o motor compartilhado também entra na soma.\n\nO bloqueio usa uma pequena lista local de domínios. Se um site falhar, desligue a opção e recarregue. Não é um bloqueador completo de anúncios.\n\nGanho ainda não medido no Windows.", "VOLT"));
         menu.Click += (_, _) => { pin.Checked = Current?.KeepAwake == true; popup.Show(menu, new Point(0, menu.Height)); };
         InitializeBookmarks();
+        InitializeBrowsingOptions(popup);
         timer.Tick += async (_, _) => { await SuspendTabs(false); await SweepWhatsApp(); UpdateChrome(); ReleaseMemoryPressure(); };
         Shown += async (_, _) => { await AddTab(); timer.Start(); };
-        FormClosing += (_, _) => { closing = true; timer.Stop(); outsideWhatsApp?.Dispose(); DisposeWhatsApp(); sidebarLogo?.Image?.Dispose(); foreach (var tab in items.Values) DisposeView(tab); timer.Dispose(); popup.Dispose(); chromeTips.Dispose(); };
+        FormClosing += (_, _) => { closing = true; timer.Stop(); outsideWhatsApp?.Dispose(); DisposeWhatsApp(); sidebarLogo?.Image?.Dispose(); foreach (var tab in items.Values) { DisposeView(tab); ClearFavicon(tab); } timer.Dispose(); popup.Dispose(); chromeTips.Dispose(); };
     }
 
     void SetWebTheme(BrowserView view)
@@ -268,7 +272,7 @@ sealed partial class BrowserWindow : Form
         BrowserTab tab;
         using(var redraw=new ThemeRedraw(this))
         {
-            tab=new BrowserTab();tab.Page.Bounds=tabs.DisplayRectangle;
+            tab=new BrowserTab();tab.Page.Tag=tab;tab.Page.Bounds=tabs.DisplayRectangle;
             tab.Page.BackColor=darkMode?BrowserTheme.Background:Color.FromArgb(240,243,248);
             items.Add(tab.Page,tab);
             // Build and theme the page before selecting it; the old frame covers native handle creation.
@@ -290,7 +294,7 @@ sealed partial class BrowserWindow : Form
             }));
         }
         if (url is not null) await NavigateTab(tab, url);
-        UpdateChrome();
+        ResumePriorityTabs();UpdateChrome();
     }
 
     void DisposeView(BrowserTab tab)
@@ -327,7 +331,7 @@ sealed partial class BrowserWindow : Form
             homePage.Visible = true;
         }
         finally { tab.Page.ResumeLayout(true); }
-        tab.Url = null; tab.Unloaded = false; tab.SleepResult = "Início nativo (sem motor)"; tab.Title = "Nova guia"; tab.Page.Text = tab.Title;
+        ClearFavicon(tab); tab.Url = null; tab.Unloaded = false; tab.SleepResult = "Início nativo (sem motor)"; tab.Title = "Nova guia"; tab.Page.Text = tab.Title;
         UpdateChrome();
     }
 
@@ -369,6 +373,7 @@ sealed partial class BrowserWindow : Form
             core.NavigationStarting += (_, e) =>
             {
                 if (!ResourcePolicy.IsHttp(e.Uri) && e.Uri != "about:blank") { e.Cancel = true; tab.Loading = false; return; }
+                ClearFavicon(tab);
                 tab.Loading = true; tab.DocumentReady = false; tab.LoadStarted = DateTime.UtcNow;
             };
             core.FrameCreated += (_, e) =>
@@ -385,8 +390,10 @@ sealed partial class BrowserWindow : Form
             core.NavigationCompleted += (_, e) =>
             {
                 tab.Loading = false; _ = ApplyMediaGuard(tab);
+                if(!closing && tab.View==view && e.IsSuccess) RememberAddress(core.Source);
                 if (Current == tab && !e.IsSuccess) status.Text = "Não foi possível carregar a página: " + e.WebErrorStatus;
             };
+            core.FaviconChanged += async (_, _) => await UpdateFavicon(tab,view);
             core.SourceChanged += (_, _) => { if (ResourcePolicy.IsHttp(core.Source)) tab.Url = core.Source; if (Current == tab) UpdateChrome(); };
             core.HistoryChanged += (_, _) => { if (Current == tab) UpdateChrome(); };
             core.DocumentTitleChanged += (_, _) =>
@@ -529,12 +536,12 @@ sealed partial class BrowserWindow : Form
                 if(selected is not null && items.ContainsKey(selected))tabs.SelectedTab=selected;
             }
             finally{movingTabs=false;changingTabs=false;tabs.ResumeLayout(true);}
-            SelectTab();
+            SelectTab();ResumePriorityTabs();
         }
     }
 
     bool StillLoading(BrowserTab tab) => tab.Loading && (!tab.DocumentReady || DateTime.UtcNow - tab.LoadStarted < TimeSpan.FromSeconds(30));
-    string Protection(BrowserTab tab) => ResourcePolicy.SleepProtection(tab == Current, tab.Ready, StillLoading(tab), tab.KeepAwake, tab.Downloads, tab.Ready && tab.View!.CoreWebView2.IsDocumentPlayingAudio);
+    string Protection(BrowserTab tab) => ResourcePolicy.SleepProtection(tab == Current, tab.Ready, StillLoading(tab), (tab.KeepAwake || HasPositionPriority(tab)), tab.Downloads, tab.Ready && tab.View!.CoreWebView2.IsDocumentPlayingAudio);
     bool CanSleep(BrowserTab tab) => Protection(tab).Length == 0;
 
     void UnloadTab(BrowserTab tab)
@@ -553,7 +560,7 @@ sealed partial class BrowserWindow : Form
             string state = tab.Unloaded ? "Liberada" : tab.Ready && tab.View!.CoreWebView2.IsSuspended ? "Suspensa" : reason.Length > 0 ? reason : tab.SleepResult;
             details.Add(tab.Title + "\n" + state + $" • {Math.Max(0, (int)(DateTime.UtcNow - tab.HiddenSince).TotalSeconds)} s desde a última saída da aba");
         }
-        using var dialog = new Form { Text = "Diagnóstico das abas — VOLT 0.6.3", Size = new(720, 500), StartPosition = FormStartPosition.CenterParent };
+        using var dialog = new Form { Text = "Diagnóstico das abas — VOLT 0.6.4", Size = new(720, 500), StartPosition = FormStartPosition.CenterParent };
         dialog.Controls.Add(new TextBox { Multiline = true, ReadOnly = true, ScrollBars = ScrollBars.Vertical, Dock = DockStyle.Fill, Text = string.Join("\r\n\r\n", details), Font = new("Segoe UI", 11) });
         dialog.ShowDialog(this);
     }
@@ -610,17 +617,18 @@ sealed partial class BrowserWindow : Form
                 foreach(var target in targets)
                 {
                     if(!items.Remove(target.Page))continue;
-                    tabs.TabPages.Remove(target.Page);DisposeView(target);target.Page.Dispose();
+                    tabs.TabPages.Remove(target.Page);DisposeView(target);ClearFavicon(target);target.Page.Dispose();
                 }
             }
             finally{movingTabs=false;changingTabs=false;tabs.ResumeLayout(true);}
-            SelectTab();
+            SelectTab();ResumePriorityTabs();
         }
     }
 
     async Task SuspendTabs(bool now)
     {
         if (sweeping || closing || (!economy && !now && !deepEconomy)) return;
+        ResumePriorityTabs();
         sweeping = true;
         try
         {
@@ -632,8 +640,8 @@ sealed partial class BrowserWindow : Form
                 if (protection.Length > 0) { tab.SleepResult = protection; continue; }
                 var inactive = DateTime.UtcNow - tab.HiddenSince;
                 // Liberação forte é opt-in; as proteções são verificadas novamente em cada ciclo.
-                if (ResourcePolicy.ShouldUnload(deepEconomy, inactive, CanSleep(tab), items.Values.Count(t => t.Ready))) { UnloadTab(tab); continue; }
-                if ((!economy && !now) || (!now && inactive < TimeSpan.FromSeconds(45))) continue;
+                if (ResourcePolicy.SleepDue(sleepMinutes,inactive) && deepEconomy && CanSleep(tab)) { UnloadTab(tab); continue; }
+                if ((!economy && !now) || (!now && !ResourcePolicy.SleepDue(sleepMinutes,inactive))) continue;
                 var view = tab.View!;
                 var core = view.CoreWebView2;
                 if (core.IsSuspended) { tab.SleepResult = "Suspensa"; continue; }
@@ -713,12 +721,12 @@ sealed partial class BrowserWindow : Form
         int unloaded = items.Values.Count(t => t.Unloaded);
         foreach (var item in items.Values)
         {
-            string prefix = item.Unloaded ? "[L] " : item.Ready && item.View!.CoreWebView2.IsSuspended ? "[Z] " : "";
+            string prefix = "";
             item.Page.Text = prefix + (item.Title.Length > 24 ? item.Title[..24] + "…" : item.Title);
             item.Page.ToolTipText = item.Title + "\n" + (item.Unloaded ? "Liberada; recarrega ao voltar" : item.SleepResult);
         }
         MeasureMemory();
-        status.Text = $"VOLT 0.6.3 • {items.Count} aba(s) • {sleeping} suspensa(s) • {unloaded} liberada(s) • {blocked} bloqueio(s)" + (deepEconomy ? " • Economia forte" : "") + memory;
+        status.Text = $"VOLT 0.6.4 • {items.Count} aba(s) • {sleeping} suspensa(s) • {unloaded} liberada(s) • {blocked} bloqueio(s)" + (deepEconomy ? " • Economia forte" : "") + memory;
     }
 
     protected override bool ProcessCmdKey(ref Message msg, Keys keyData)

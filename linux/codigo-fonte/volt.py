@@ -3,17 +3,17 @@
 import sys, os, json, time
 from pathlib import Path
 from urllib.parse import urlparse
-from PySide6.QtCore import Qt,QUrl,QTimer,QPoint,Signal,QStandardPaths,QSize,QByteArray,QEvent
+from PySide6.QtCore import Qt,QUrl,QTimer,QPoint,Signal,QStandardPaths,QSize,QByteArray,QEvent,QStringListModel
 from PySide6.QtGui import QColor,QPainter,QLinearGradient,QPolygonF,QIcon,QFont,QAction,QShortcut,QKeySequence,QPalette,QPixmap
 from PySide6.QtWidgets import (QApplication,QMainWindow,QWidget,QVBoxLayout,QHBoxLayout,QLineEdit,QPushButton,QLabel,
- QStackedWidget,QSplitter,QMenu,QCheckBox,QFileDialog,QMessageBox,QSizePolicy)
+ QStackedWidget,QSplitter,QMenu,QCheckBox,QFileDialog,QMessageBox,QSizePolicy,QCompleter,QInputDialog)
 from PySide6.QtWebEngineCore import QWebEnginePage,QWebEngineProfile,QWebEngineScript,QWebEngineUrlRequestInterceptor,QWebEngineSettings
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtSvg import QSvgRenderer
-from policy import address,is_tracker,move_block,survivor,eligible,pressure,process_memory
+from policy import address,is_tracker,move_block,survivor,eligible,pressure,process_memory,sleep_due,position_priority,safe_history_url
 BASE=Path(getattr(sys,'_MEIPASS',Path(__file__).resolve().parent))
 ASSETS=BASE/'assets'
-VERSION='0.6.3 Linux'
+VERSION='0.6.4 Linux'
 ACTIVE=QWebEnginePage.LifecycleState.Active
 FROZEN=QWebEnginePage.LifecycleState.Frozen
 DISCARDED=QWebEnginePage.LifecycleState.Discarded
@@ -117,8 +117,11 @@ class Tabs(QWidget):
             p.setPen(QColor('#8eb7df') if chosen and len(self.selected)>1 else Qt.NoPen)
             p.setBrush(QColor('#425c7a' if chosen and len(self.selected)>1 else ('#344354' if self.w.dark else '#ffffff') if current else self.w.chrome));p.drawRoundedRect(r,7,7)
             p.setPen(QColor(self.w.fg));p.setFont(QFont('Sans Serif',9))
+            if not tab.favicon.isNull():p.drawPixmap(r.left()+10,r.top()+(r.height()-16)//2,tab.favicon)
+            else:
+                p.setPen(QColor(self.w.fg));p.setBrush(Qt.NoBrush);p.drawEllipse(r.left()+12,r.top()+8,12,12)
             title=('♫ ' if tab.view and tab.view.page().recentlyAudible() else '')+tab.title
-            p.drawText(r.adjusted(12,0,-26,0),Qt.AlignVCenter,p.fontMetrics().elidedText(title,Qt.ElideRight,max(10,r.width()-40)))
+            p.drawText(r.adjusted(32,0,-26,0),Qt.AlignVCenter,p.fontMetrics().elidedText(title,Qt.ElideRight,max(10,r.width()-60)))
             if self.hover==i:
                 x=r.right()-17;p.setPen(QColor(self.w.fg));p.drawLine(x-3,15,x+3,21);p.drawLine(x-3,21,x+3,15)
         p.setBrush(QColor('#344354' if self.w.dark else '#dce5ed'));p.setPen(Qt.NoPen);p.drawEllipse(self.plus_rect());p.setPen(QColor(self.w.fg));p.drawText(self.plus_rect(),Qt.AlignCenter,'+')
@@ -153,7 +156,7 @@ class Tabs(QWidget):
     def mouseReleaseEvent(self,e):
         if e.button()!=Qt.LeftButton:return
         if self.dragging and self.rect().contains(e.position().toPoint()) and self.slot is not None:
-            self.w.order=move_block(self.w.order,self.selected,self.slot);self.selected={self.w.active};self.anchor=self.w.active
+            self.w.order=move_block(self.w.order,self.selected,self.slot);self.w.resume_priority_tabs();self.selected={self.w.active};self.anchor=self.w.active
         elif self.start is not None and not self.modifiers&(Qt.ShiftModifier|Qt.ControlModifier):self.selected={self.w.active};self.anchor=self.w.active
         self.start=None;self.dragging=False;self.slot=None;self.update()
     def keyPressEvent(self,e):
@@ -190,13 +193,13 @@ class Page(QWebEnginePage):
 
 class Tab(QWidget):
     def __init__(self,window,ident,whatsapp=False):
-        super().__init__();self.w=window;self.ident=ident;self.whatsapp=whatsapp;self.title='Nova guia';self.url='';self.view=None;self.home=None;self.loading=False;self.ready=False;self.pinned=whatsapp;self.downloads=0;self.hidden=time.monotonic();self.revision=0
+        super().__init__();self.w=window;self.ident=ident;self.whatsapp=whatsapp;self.title='Nova guia';self.url='';self.view=None;self.home=None;self.loading=False;self.ready=False;self.pinned=whatsapp;self.downloads=0;self.hidden=time.monotonic();self.revision=0;self.favicon=QPixmap()
         self.box=QVBoxLayout(self);self.box.setContentsMargins(0,0,0,0);self.box.setSpacing(0)
         if not whatsapp:self.show_home()
     def show_home(self):
         if self.view:self.box.removeWidget(self.view);self.view.stop();self.view.page().deleteLater();self.view.deleteLater();self.view=None
         if not self.home:self.home=Home(self.w);self.box.addWidget(self.home)
-        self.title='Nova guia';self.url='';self.ready=False;self.w.refresh()
+        self.favicon=QPixmap();self.title='Nova guia';self.url='';self.ready=False;self.w.refresh()
     def ensure_view(self):
         if not self.view:
             view=QWebEngineView(self);page=Page(self.w.profile,self);view.setPage(page);self.view=view
@@ -204,6 +207,7 @@ class Tab(QWidget):
             page.settings().setAttribute(QWebEngineSettings.PlaybackRequiresUserGesture,True)
             page.settings().setAttribute(QWebEngineSettings.JavascriptCanOpenWindows,True)
             view.urlChanged.connect(self.url_changed);view.titleChanged.connect(self.title_changed);view.loadStarted.connect(self.started);view.loadFinished.connect(self.finished)
+            view.iconChanged.connect(self.icon_changed)
             page.newWindowRequested.connect(self.new_window);page.permissionRequested.connect(self.permission)
             page.fullScreenRequested.connect(self.fullscreen);page.renderProcessTerminated.connect(self.crashed)
             page.recentlyAudibleChanged.connect(lambda _:self.w.header.update())
@@ -213,7 +217,9 @@ class Tab(QWidget):
             if self.home:self.box.removeWidget(self.home);self.home.deleteLater();self.home=None
             self.box.addWidget(view);self.w.install_click_filters()
     def navigate(self,text):
-        target=address(text);self.ensure_view()
+        target=address(text)
+        if urlparse(target).netloc!=urlparse(self.url).netloc:self.favicon=QPixmap()
+        self.ensure_view()
         self.view.page().setLifecycleState(ACTIVE);self.view.setUrl(QUrl(target));self.url=target;self.w.refresh()
     def new_window(self,request):
         if request.isUserInitiated():
@@ -229,10 +235,17 @@ class Tab(QWidget):
         else:self.w.showNormal()
     def crashed(self,*_):
         self.loading=False;self.ready=False;self.title='Página interrompida — recarregue';self.w.refresh()
-    def url_changed(self,url):self.url=url.toString();self.w.refresh()
+    def url_changed(self,url):
+        value=url.toString()
+        if urlparse(value).netloc!=urlparse(self.url).netloc:self.favicon=QPixmap()
+        self.url=value;self.w.refresh()
     def title_changed(self,title):self.title=title or 'Nova guia';self.w.refresh()
+    def icon_changed(self,icon):
+        if not icon.isNull():self.favicon=icon.pixmap(16,16);self.w.header.update()
     def started(self):self.loading=True;self.w.refresh()
-    def finished(self,ok):self.loading=False;self.ready=True;self.media();self.w.refresh()
+    def finished(self,ok):
+        self.loading=False;self.ready=True;self.media();self.w.refresh()
+        if ok and not self.whatsapp:self.w.remember_address(self.url)
     def media(self):
         if self.view and not self.whatsapp:
             self.revision+=1
@@ -243,7 +256,7 @@ class Tab(QWidget):
     def can_sleep(self):
         visible=self.w.wa_visible if self.whatsapp else self.w.active==self.ident
         page=self.view.page() if self.view else None
-        return eligible(visible,bool(page and self.ready),self.loading,self.pinned,self.downloads,bool(page and page.recentlyAudible()))
+        return eligible(visible,bool(page and self.ready),self.loading,(self.pinned or (not self.whatsapp and self.w.has_position_priority(self.ident))),self.downloads,bool(page and page.recentlyAudible()))
     def activate(self):
         if self.view:self.view.page().setLifecycleState(ACTIVE)
         self.media()
@@ -282,6 +295,8 @@ class Browser(QMainWindow):
         row.addWidget(button('⟳','Recarregar',lambda:self.current_view_action('reload')));row.addWidget(button('⌂','Início',self.go_home))
         self.address=QLineEdit();self.address.setObjectName('address');self.address.setMinimumHeight(32);self.address.setPlaceholderText('Busque o que quiser sem peso, ou digite a sua URL');self.address.returnPressed.connect(lambda:self.navigate(self.address.text()));row.addWidget(self.address,1)
         row.addWidget(button('♡','Salvar favorito',self.add_bookmark));row.addWidget(button('↓','Downloads',self.download_menu));row.addWidget(button('◐','Alternar modo claro e escuro',self.toggle_theme));row.addWidget(button('☰','Menu',self.menu));col.addWidget(nav)
+        self.completion_model=QStringListModel(self)
+        self.completer=QCompleter(self.completion_model,self);self.completer.setCaseSensitivity(Qt.CaseInsensitive);self.completer.setFilterMode(Qt.MatchContains);self.completer.setMaxVisibleItems(8);self.address.setCompleter(self.completer)
         self.bookmarks=QWidget();self.bookmarks.setFixedHeight(27);self.bookmark_layout=QHBoxLayout(self.bookmarks);self.bookmark_layout.setContentsMargins(8,0,8,0);col.addWidget(self.bookmarks)
         self.viewport=QWidget();col.addWidget(self.viewport,1);self.panel_width=720
         viewport_layout=QVBoxLayout(self.viewport);viewport_layout.setContentsMargins(0,0,0,0);viewport_layout.setSpacing(0)
@@ -291,12 +306,15 @@ class Browser(QMainWindow):
         self.wa_shell.hide();self.wa_grip=OverlayGrip(self,self.viewport);self.wa_grip.hide()
 
         self.status=QLabel();self.status.setObjectName('status');self.status.setFixedHeight(21);col.addWidget(self.status)
-        self.apply_theme();self.render_bookmarks();self.new_tab()
+        self.apply_theme();self.render_bookmarks();self.update_completions();self.new_tab()
         for key,callback in [('Ctrl+T',self.new_tab),('Ctrl+W',lambda:self.close_tabs(self.header.selected or {self.active})),('Ctrl+L',self.focus_address),('Ctrl+R',lambda:self.current_view_action('reload')),('F5',lambda:self.current_view_action('reload')),('F11',lambda:self.showNormal() if self.isFullScreen() else self.showFullScreen()),('Ctrl+Tab',lambda:self.cycle(1)),('Ctrl+Shift+Tab',lambda:self.cycle(-1))]:
             QShortcut(QKeySequence(key),self,activated=callback)
         self.timer=QTimer(self);self.timer.timeout.connect(self.sweep);self.timer.start(15000);self.install_click_filters()
     def save(self):
-        target=self.state_dir/'settings.json';temp=target.with_suffix('.tmp');temp.write_text(json.dumps(self.settings,ensure_ascii=False,indent=2));temp.replace(target)
+        try:
+            target=self.state_dir/'settings.json';temp=target.with_suffix('.tmp');temp.write_text(json.dumps(self.settings,ensure_ascii=False,indent=2));temp.replace(target)
+        except OSError:
+            if hasattr(self,'status'):self.status.setText('Preferência aplicada, mas não foi possível salvá-la.')
     def apply_theme(self):
         self.bg='#202431' if self.dark else '#e8e3e3';self.chrome='#181e27' if self.dark else '#eef4f9';self.fg='#e5ecf4' if self.dark else '#253343';surface='#232b36' if self.dark else '#ffffff'
         self.setUpdatesEnabled(False)
@@ -333,7 +351,7 @@ class Browser(QMainWindow):
         idx=self.order.index(self.active)+1 if self.active in self.order else len(self.order);self.order.insert(idx,ident);self.stack.addWidget(tab);self.header.selected={ident};self.header.anchor=ident;self.activate(ident)
         if isinstance(url,str) and url:tab.navigate(url)
         else:QTimer.singleShot(0,lambda:self.focus_address() if self.active==ident else None)
-        self.install_click_filters()
+        self.install_click_filters();self.resume_priority_tabs()
         return tab
     def activate(self,ident):
         if ident not in self.tabs:return
@@ -370,7 +388,7 @@ class Browser(QMainWindow):
                 tab=self.tabs.pop(ident);self.order.remove(ident);self.stack.removeWidget(tab)
                 if tab.view:tab.view.stop()
                 tab.deleteLater()
-            self.header.selected={target};self.header.anchor=target;self.header.offset=min(self.header.offset,self.header.max_offset());self.header.reveal();self.refresh()
+            self.header.selected={target};self.header.anchor=target;self.header.offset=min(self.header.offset,self.header.max_offset());self.header.reveal();self.resume_priority_tabs();self.refresh()
         finally:self.setUpdatesEnabled(True)
     def refresh(self):
         if not hasattr(self,'address'):return
@@ -396,7 +414,7 @@ class Browser(QMainWindow):
         tab=self.tabs.get(self.active)
         if tab and urlparse(tab.url).scheme in ('http','https'):
             marks=self.settings.setdefault('bookmarks',[])
-            if not any(x['url']==tab.url for x in marks):marks.append({'title':tab.title,'url':tab.url});self.save();self.render_bookmarks()
+            if not any(x['url']==tab.url for x in marks):marks.append({'title':tab.title,'url':tab.url});self.save();self.render_bookmarks();self.update_completions()
     def bookmark_menu(self):
         menu=QMenu(self)
         for mark in self.settings.get('bookmarks',[]):menu.addAction(mark['title'],lambda u=mark['url']:self.navigate(u))
@@ -445,12 +463,13 @@ class Browser(QMainWindow):
                 if page.lifecycleState()!=DISCARDED:page.setLifecycleState(DISCARDED)
         self.update_status()
     def sweep(self):
+        self.resume_priority_tabs()
         now=time.monotonic();all_tabs=list(self.tabs.values())+([self.wa] if self.wa else [])
         loaded=sum(bool(t.view and t.view.page().lifecycleState()!=DISCARDED) for t in all_tabs)
         for tab in all_tabs:
-            if tab.can_sleep() and now-tab.hidden>=45:
+            if tab.can_sleep() and sleep_due(self.sleep_minutes(),now-tab.hidden):
                 page=tab.view.page()
-                if self.settings.get('economy',False) and (loaded>2 or now-tab.hidden>=180):page.setLifecycleState(DISCARDED)
+                if self.settings.get('economy',False):page.setLifecycleState(DISCARDED)
                 elif page.lifecycleState()==ACTIVE:page.setLifecycleState(FROZEN)
         used=process_memory();self.pressured=pressure(self.pressured,used)
         if self.settings.get('auto_memory',True) and self.pressured and now-self.last_clean>=30:self.last_clean=now;self.release()
@@ -477,6 +496,9 @@ class Browser(QMainWindow):
         menu=QMenu(self);menu.addAction('Nova aba\tCtrl+T',self.new_tab);menu.addAction('Liberar abas em segundo plano…',lambda:self.release(True))
         for text,key,default in [('Limpeza automática acima de 1,2 GB','auto_memory',True),('Economia forte de memória','economy',False),('Pausar mídia ao sair da aba','pause_media',False)]:
             act=menu.addAction(text);act.setCheckable(True);act.setChecked(self.settings.get(key,default));act.toggled.connect(lambda value,k=key:self.preference(k,value))
+        menu.addAction('Tempo para hibernar…',self.choose_sleep_time)
+        menu.addAction('Primeiras abas protegidas…',self.choose_priority_count)
+        menu.addAction('Limpar histórico de endereços',self.clear_address_history)
         menu.addSeparator();menu.addAction('Senhas — importar e gerenciar…',self.password_manager)
         menu.addSeparator();menu.addAction('Modo claro' if self.dark else 'Modo escuro',self.toggle_theme)
         menu.addAction('Sobre o VOLT',lambda:QMessageBox.information(self,'VOLT',f'VOLT {VERSION}\nBase: Windows 0.6.0\nQt WebEngine / Chromium\nUma aba ativa ou com áudio pode ultrapassar a meta de memória.'))
@@ -485,6 +507,41 @@ class Browser(QMainWindow):
         self.settings[key]=value;self.save()
         if key=='pause_media':
             for tab in self.tabs.values():tab.media()
+    def sleep_minutes(self):
+        value=self.settings.get('sleep_minutes',5)
+        return value if type(value) is int and value in (0,1,5,10,15,30) else 5
+    def has_position_priority(self,ident):
+        value=self.settings.get('priority_tabs',0)
+        count=value if type(value) is int else 0
+        return position_priority(self.order.index(ident) if ident in self.order else -1,count)
+    def resume_priority_tabs(self):
+        for ident in self.order:
+            if self.has_position_priority(ident):
+                tab=self.tabs[ident]
+                if tab.view and tab.view.page().lifecycleState()!=ACTIVE:tab.activate()
+    def choose_sleep_time(self):
+        values=[1,5,10,15,30,0];labels=['1 minuto','5 minutos','10 minutos','15 minutos','30 minutos','Nunca']
+        label,ok=QInputDialog.getItem(self,'Hibernação','Tempo sem usar a aba (limpeza por RAM é independente):',labels,values.index(self.sleep_minutes()),False)
+        if ok:
+            self.preference('sleep_minutes',values[labels.index(label)])
+            for tab in self.tabs.values():
+                if tab.view and tab.view.page().lifecycleState()==FROZEN:tab.activate();tab.hidden=time.monotonic()
+    def choose_priority_count(self):
+        value=self.settings.get('priority_tabs',0);value=value if type(value) is int else 0
+        count,ok=QInputDialog.getInt(self,'Prioridade das abas','Manter as primeiras N abas ativas, da esquerda para a direita:',max(0,min(100,value)),0,100)
+        if ok:self.preference('priority_tabs',count);self.resume_priority_tabs()
+    def update_completions(self):
+        urls=[x.get('url','') for x in self.settings.get('bookmarks',[]) if isinstance(x,dict)]+self.settings.get('address_history',[])[:200]
+        urls=[u for u in urls if safe_history_url(u)]
+        values=list(dict.fromkeys([u for url in urls for u in (url,url.split('://',1)[-1])]))[:500]
+        self.completion_model.setStringList(values)
+    def remember_address(self,url):
+        if not safe_history_url(url):return
+        history=self.settings.get('address_history',[])
+        self.settings['address_history']=[url]+[u for u in history if u!=url and safe_history_url(u)][:199]
+        self.save();self.update_completions()
+    def clear_address_history(self):
+        self.settings['address_history']=[];self.save();self.update_completions()
     def password_manager(self):
         from password_ui import PasswordDialog
         dialog=PasswordDialog(self)

@@ -1,3 +1,13 @@
+# Verificação da versão 0.6.4
+
+- Windows: compilação e publicação win-x64 sem avisos/erros, 301 verificações C# de política.
+- Linux: 20 testes unitários, 41 verificações integradas existentes e 24 novas verificações offscreen; Chromium acessou um servidor HTTP local para obter favicon.
+- Novos casos: limites do prazo, Nunca, proteção por posição e reordenação, prioridade durante limpeza, tamanho e retenção do favicon, sugestões locais e escolha pelo teclado, limite de 200 endereços, exclusão de URL com credenciais e persistência.
+- A interface nativa, o autocomplete e o DPAPI do Windows não foram executados no Linux; precisam de validação em Windows real. Offscreen não comprova fluidez nem economia de RAM no computador do usuário.
+- Mantidas as limitações anteriores do cofre e as proteções de abas com áudio/download/carregamento.
+
+## Registro anterior
+
 # Verificação 0.6.3 — Senhas e usabilidade das abas
 
 - Windows: 287 verificações de geometria e políticas, incluindo CSV com BOM, aspas,

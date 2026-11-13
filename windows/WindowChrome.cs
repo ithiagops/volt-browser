@@ -33,6 +33,7 @@ sealed partial class BrowserWindow
         if(bookmarks.Count==0)
             bookmarkBar.Controls.Add(new Label {Text="Seus favoritos ficam aqui. Use o coração para salvar uma página.",AutoSize=true,Font=new("Segoe UI",8.5f),ForeColor=Color.FromArgb(112,127,145),Margin=new(3,5,0,0)});
         BrowserTheme.Apply(bookmarkBar,darkMode);
+        RefreshAddressSuggestions();
     }
     void SaveBookmarks()
     {

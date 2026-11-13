@@ -4,10 +4,20 @@ Navegador para Windows e Linux com foco em velocidade, uso consciente de memóri
 interface leve e minimalista. O projeto combina gerenciamento de abas, economia automática
 de RAM e WhatsApp integrado à barra lateral.
 
-**Versão atual do código: 0.6.3 — experimental.**
+**Versão atual do código: 0.6.4 — experimental.**
 
 A faixa de abas aceita cliques até seu topo; fechar uma aba ou grupo não abre uma
 confirmação genérica do VOLT. Dados temporários da aba fechada podem ser perdidos.
+
+## Abas, memória e endereços — 0.6.4
+
+- **Menu → Tempo para hibernar:** 1, 5 (padrão), 10, 15 ou 30 minutos; Nunca desliga a hibernação por tempo. A verificação ocorre a cada 15 segundos. Suspensão conserva a página; economia forte descarta e recarrega ao voltar.
+- **Primeiras abas protegidas…:** de 0 (padrão) a 100 abas da esquerda para a direita. A proteção acompanha a ordem atual e vale também para limpeza por RAM e liberação manual. Uma página já descartada é recarregada quando ganha prioridade.
+- A limpeza automática acima de 1,2 GB continua independente do prazo, inclusive em Nunca; preserva abas protegidas, ativas, carregando, com downloads ou áudio.
+- Favicons de 16 × 16 obtidos do motor, sem serviço externo de ícones. São mantidos por aba, inclusive quando hiberna, e liberados ao fechar ou voltar ao início. Não há ganho de RAM comparativo medido.
+- Sugestões locais de favoritos e dos últimos 200 endereços visitados com sucesso. Use setas e Enter para escolher; Windows sugere por prefixo e Linux também por trecho. O menu permite limpar esse histórico sem apagar favoritos. Nenhuma digitação é enviada a um serviço de sugestões.
+- Prazo, quantidade protegida e histórico persistem localmente. No Windows: `%LocalAppData%/VOLT/browsing.json`; no Linux: `settings.json` no diretório de dados do VOLT. Endereços com credenciais embutidas são excluídos das sugestões.
+- O botão + aceita cliques até o topo da faixa de abas, preservando seu desenho circular.
 
 ## Senhas importadas
 
@@ -70,7 +80,7 @@ Requer SDK .NET 10 para desenvolvimento e WebView2 Runtime para navegar.
 ```powershell
 dotnet run --project windows/VOLT.csproj
 dotnet run --project windows/tests/PolicyChecks.csproj -c Release
-dotnet publish windows/VOLT.csproj -c Release -r win-x64 --self-contained true -o windows/dist/VOLT-0.6.3
+dotnet publish windows/VOLT.csproj -c Release -r win-x64 --self-contained true -o windows/dist/VOLT-0.6.4
 ```
 
 Para gerar o instalador, instale NSIS 3.11 ou compatível e execute:

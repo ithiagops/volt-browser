@@ -1,8 +1,8 @@
 $ErrorActionPreference = 'Stop'
 $ProjectRoot = Split-Path -Parent $PSScriptRoot
-$Payload = Join-Path $ProjectRoot 'dist/VOLT-0.6.3'
+$Payload = Join-Path $ProjectRoot 'dist/VOLT-0.6.4'
 $OutputDirectory = Join-Path $ProjectRoot 'dist'
-$Output = Join-Path $OutputDirectory 'VOLT-0.6.3-Setup.exe'
+$Output = Join-Path $OutputDirectory 'VOLT-0.6.4-Setup.exe'
 $Bootstrapper = Join-Path $PSScriptRoot 'MicrosoftEdgeWebview2Setup.exe'
 $Compiler = (Get-Command makensis.exe -ErrorAction SilentlyContinue).Source
 if (-not $Compiler) {

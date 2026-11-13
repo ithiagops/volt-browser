@@ -3,10 +3,10 @@ Unicode true
 !include "LogicLib.nsh"
 !include "x64.nsh"
 !ifndef PAYLOAD
-  !define PAYLOAD "..\dist\VOLT-0.6.3"
+  !define PAYLOAD "..\dist\VOLT-0.6.4"
 !endif
 !ifndef OUTPUT
-  !define OUTPUT "..\..\VOLT-0.6.3-Setup.exe"
+  !define OUTPUT "..\..\VOLT-0.6.4-Setup.exe"
 !endif
 Name "VOLT"
 OutFile "${OUTPUT}"
@@ -17,10 +17,10 @@ SetCompressor /SOLID lzma
 SetCompressorDictSize 32
 Icon "..\Assets\Volt.ico"
 UninstallIcon "..\Assets\Volt.ico"
-VIProductVersion "0.6.3.0"
+VIProductVersion "0.6.4.0"
 VIAddVersionKey /LANG=1046 "ProductName" "VOLT"
-VIAddVersionKey /LANG=1046 "FileDescription" "Instalador do VOLT 0.6.3"
-VIAddVersionKey /LANG=1046 "FileVersion" "0.6.3"
+VIAddVersionKey /LANG=1046 "FileDescription" "Instalador do VOLT 0.6.4"
+VIAddVersionKey /LANG=1046 "FileVersion" "0.6.4"
 VIAddVersionKey /LANG=1046 "LegalCopyright" "VOLT"
 !define MUI_ABORTWARNING
 !define MUI_WELCOMEPAGE_TEXT "Este assistente instala o VOLT para seu usuário e cria atalhos no menu Iniciar e na área de trabalho.$\r$\n$\r$\nFeche o VOLT antes de continuar.$\r$\n$\r$\nSe o WebView2 estiver ausente, sua instalação exige internet."
@@ -81,7 +81,7 @@ Section "VOLT" Main
   CreateShortcut "$SMPROGRAMS\VOLT\Desinstalar VOLT.lnk" "$INSTDIR\Desinstalar-VOLT.exe"
   WriteRegStr HKCU "Software\VOLT\Installer" "Location" "$INSTDIR"
   WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\VOLT" "DisplayName" "VOLT"
-  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\VOLT" "DisplayVersion" "0.6.3"
+  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\VOLT" "DisplayVersion" "0.6.4"
   WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\VOLT" "DisplayIcon" "$INSTDIR\app\VOLT.exe,0"
   WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\VOLT" "InstallLocation" "$INSTDIR"
   WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\VOLT" "UninstallString" '$\"$INSTDIR\Desinstalar-VOLT.exe$\"'

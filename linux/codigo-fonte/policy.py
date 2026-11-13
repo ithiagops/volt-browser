@@ -42,3 +42,17 @@ def process_memory():
         if new==owned:break
         owned=new
     return sum(records.get(pid,(0,0))[1] for pid in owned)
+
+
+def sleep_due(minutes, seconds):
+    return minutes > 0 and seconds >= minutes*60
+
+def position_priority(index, count):
+    return 0 <= index < max(0,min(100,count))
+
+def safe_history_url(url):
+    if not isinstance(url,str) or len(url)>2048:return False
+    try:
+        parsed=urlparse(url)
+        return parsed.scheme in ('http','https') and bool(parsed.hostname) and not parsed.username and not parsed.password
+    except ValueError:return False
