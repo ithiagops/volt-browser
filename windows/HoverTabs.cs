@@ -210,7 +210,8 @@ sealed class BrowserTabsHeader : Control
     }
     void Circle(Graphics g, RectangleF b, string text, bool isPlus)
     {
-        if (isPlus || b.Contains(pointer)) { using var fill = new SolidBrush(Dark ? (b.Contains(pointer) ? Color.FromArgb(65, 82, 104) : Color.FromArgb(44, 57, 74)) : (b.Contains(pointer) ? Color.FromArgb(238, 244, 249) : Color.White)); g.FillEllipse(fill, b); }
+        bool hot = isPlus ? AtPlus(pointer) : b.Contains(pointer);
+        if (isPlus || hot) { using var fill = new SolidBrush(Dark ? (hot ? Color.FromArgb(65, 82, 104) : Color.FromArgb(44, 57, 74)) : (hot ? Color.FromArgb(238, 244, 249) : Color.White)); g.FillEllipse(fill, b); }
         if (isPlus)
         {
             using var pen = new Pen(ForeColor, Math.Max(1, Px(1.3f))); float cx = b.X + b.Width / 2, cy = b.Y + b.Height / 2, arm = Px(4);
@@ -224,7 +225,13 @@ sealed class BrowserTabsHeader : Control
         // Match paint order during animations; close targets keep their original bounds.
         return hits.Reverse().FirstOrDefault(item=>TabLayout.HitBounds(item.Value,Height,Px(2)).Contains(p)).Key;
     }
-    internal bool HasTabAtScreenPoint(Point screen) => Hit(PointToClient(screen)) is not null;
+    RectangleF PlusHitBounds => TabLayout.HitBounds(plus,Height,0);
+    bool AtPlus(Point p) => ClientRectangle.Contains(p) && PlusHitBounds.Contains(p);
+    internal bool HasTabAtScreenPoint(Point screen)
+    {
+        var p=PointToClient(screen);
+        return AtPlus(p) || Hit(p) is not null;
+    }
     bool AtClose(TabPage page, Point p) => hits.TryGetValue(page, out var b) && CloseBox(b).Contains(p);
     protected override void OnMouseMove(MouseEventArgs e)
     {
@@ -241,10 +248,10 @@ sealed class BrowserTabsHeader : Control
             if (dragging) { UpdateDestination(); StartAnimation(); Invalidate(); return; }
         }
         var next = Hit(pointer); bool close = next is not null && AtClose(next, pointer);
-        bool previousButton = plus.Contains(oldPointer) || left.Contains(oldPointer) || right.Contains(oldPointer);
-        bool nextButton = plus.Contains(pointer) || left.Contains(pointer) || right.Contains(pointer);
+        bool previousButton = AtPlus(oldPointer) || left.Contains(oldPointer) || right.Contains(oldPointer);
+        bool nextButton = AtPlus(pointer) || left.Contains(pointer) || right.Contains(pointer);
         if (next != hover || close != hotClose || nextButton != previousButton)
-        { hover = next; hotClose = close; tooltip.SetToolTip(this, next?.ToolTipText ?? (plus.Contains(pointer) ? "Nova aba" : "")); Invalidate(); }
+        { hover = next; hotClose = close; tooltip.SetToolTip(this, next?.ToolTipText ?? (AtPlus(pointer) ? "Nova aba" : "")); Invalidate(); }
         Cursor = close || nextButton ? Cursors.Hand : Cursors.Default;
     }
     void UpdateDestination()
@@ -289,7 +296,7 @@ sealed class BrowserTabsHeader : Control
         if (e.Button == MouseButtons.Middle && page is not null) { model.RequestClose(page); return; }
         if (e.Button != MouseButtons.Left) return;
         if (page is not null && AtClose(page, pointer)) { pressedClose = page; Capture = true; return; }
-        if (plus.Contains(pointer)) { NewRequested?.Invoke(); return; }
+        if (AtPlus(pointer)) { NewRequested?.Invoke(); return; }
         if (left.Contains(pointer) || right.Contains(pointer)) { start += left.Contains(pointer) ? -1 : 1; reveal = false; RefreshLayout(); return; }
         if (page is null) { EmptyDragRequested?.Invoke(e.Clicks > 1); return; }
         if (page is not null)

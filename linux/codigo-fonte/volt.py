@@ -97,13 +97,17 @@ class Tabs(QWidget):
         visual=self.rect_tab(i)
         return QRect(visual.left(),0,self.width_tab(),self.height())
     def hit(self,p):
-        if not self.rect().contains(p):return -1
+        if not self.rect().contains(p) or self.plus_hit_rect().contains(p):return -1
         for i in range(len(self.w.order)):
             if self.hit_rect_tab(i).contains(p):return i
         return -1
     def plus_rect(self):
         from PySide6.QtCore import QRect
         return QRect(min(len(self.w.order)*self.width_tab()-self.offset,self.width()-32),6,24,24)
+    def plus_hit_rect(self):
+        from PySide6.QtCore import QRect
+        visual=self.plus_rect()
+        return QRect(visual.left(),0,visual.width(),self.height()).intersected(self.rect())
     def paintEvent(self,event):
         p=QPainter(self);p.setRenderHint(QPainter.Antialiasing);p.fillRect(self.rect(),QColor(self.w.chrome))
         for i,ident in enumerate(self.w.order):
@@ -123,7 +127,7 @@ class Tabs(QWidget):
     def mousePressEvent(self,e):
         if e.button()!=Qt.LeftButton:return
         pos=e.position().toPoint()
-        if self.plus_rect().contains(pos):self.w.new_tab();return
+        if self.plus_hit_rect().contains(pos):self.w.new_tab();return
         i=self.hit(pos)
         if i<0:return
         ident=self.w.order[i];r=self.rect_tab(i)
