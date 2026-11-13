@@ -8,6 +8,10 @@ Unicode true
 !ifndef OUTPUT
   !define OUTPUT "..\..\VOLT-0.6.4-Setup.exe"
 !endif
+Var RuntimeVersion
+Var InstallMessage
+Var ExistingLocation
+Var Updating
 Name "VOLT"
 OutFile "${OUTPUT}"
 InstallDir "$LOCALAPPDATA\Programs\VOLT"
@@ -35,10 +39,6 @@ VIAddVersionKey /LANG=1046 "LegalCopyright" "VOLT"
 !insertmacro MUI_UNPAGE_CONFIRM
 !insertmacro MUI_UNPAGE_INSTFILES
 !insertmacro MUI_LANGUAGE "PortugueseBR"
-Var RuntimeVersion
-Var InstallMessage
-Var ExistingLocation
-Var Updating
 Function .onInit
   ${IfNot} ${RunningX64}
     MessageBox MB_ICONSTOP "Esta versão do VOLT requer Windows de 64 bits."
