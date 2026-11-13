@@ -1,10 +1,7 @@
-# VOLT 0.6.6 — experimental
+# VOLT Windows 0.6.7 — experimental
 
-- Janela de senhas mais compacta, com estado vazio sem tabela, cadeado e uma ação de importação em destaque. Lista e ações aparecem somente quando há logins.
-- Botão de fechar do cofre com tamanho fixo, sem ocupar a altura inteira do cabeçalho.
-- No Windows, a área cliente maximizada exclui a margem nativa fora da área útil do monitor para preservar o topo da interface.
-- Mantém sugestões temáticas, estilos de Snap, tratamento de múltiplos monitores e atualização na pasta existente.
+Correção da restauração pela barra de tarefas: layout da tela inicial preservado enquanto minimizada, sincronização da geometria nativa ao voltar e um redesenho completo coalescido após a ativação/restauração. Callback antigo é invalidado se a janela minimizar ou fechar. Mantém as páginas existentes e a visibilidade das abas de fundo, sem recarregá-las.
 
-Binários desta revisão: `VOLT-0.6.6-Setup.exe` e `VOLT-0.6.6-x86_64.AppImage` (Linux x86_64, glibc 2.39+).
+Binário novo: `VOLT-0.6.7-Setup.exe`. Linux não foi alterado: último AppImage é `VOLT-0.6.6-x86_64.AppImage`.
 
-Compilação Windows e 313 verificações C# de políticas/geometria passaram; Linux: 41 verificações integradas e 12 verificações do acabamento nos dois temas. Os controles e a maximização reais precisam ser validados em Windows. O ambiente de desenvolvimento é Linux.
+Compilação/publicação win-x64 e testes de política passaram em Linux. Minimizar/restaurar, Snap, DPI e composição nativa precisam ser verificados em Windows real.

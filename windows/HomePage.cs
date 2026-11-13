@@ -8,6 +8,7 @@ sealed class HomePage : Panel
     internal bool Dark { get; set; }
     readonly TableLayoutPanel card;
     readonly TextBox search;
+    bool positioning;
     public void FocusSearch() { search.Focus(); search.SelectAll(); }
     public HomePage(Action<string> navigate)
     {
@@ -45,14 +46,20 @@ sealed class HomePage : Panel
     protected override void OnResize(EventArgs e)
     {
         base.OnResize(e);
+        if(FindForm()?.WindowState==FormWindowState.Minimized)return;
         LayoutCard();
         Invalidate(true);
     }
+    internal void RefreshAfterRestore(){LayoutCard();card?.PerformLayout();Invalidate(true);}
     void LayoutCard()
     {
-        if (card is null) return;
+        if(card is null || positioning || ClientSize.Width<1 || ClientSize.Height<1 || FindForm()?.WindowState==FormWindowState.Minimized)return;
+        positioning=true;
+        try
+        {
         card.Width = Math.Min((int)(520*DeviceDpi/96f), Math.Max(320, ClientSize.Width - 40));
         card.Location = new(Math.Max(0, (ClientSize.Width - card.Width) / 2), Math.Max(20, (ClientSize.Height - card.Height) / 2 - 35));
+        }finally{positioning=false;}
     }
     protected override void OnPaintBackground(PaintEventArgs e)
     {

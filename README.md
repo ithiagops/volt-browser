@@ -4,7 +4,7 @@ Navegador para Windows e Linux com foco em velocidade, uso consciente de memóri
 interface leve e minimalista. O projeto combina gerenciamento de abas, economia automática
 de RAM e WhatsApp integrado à barra lateral.
 
-**Versão atual do código: 0.6.6 — experimental.**
+**Versão atual: Windows 0.6.7; Linux 0.6.6 — experimental.**
 
 A faixa de abas aceita cliques até seu topo; fechar uma aba ou grupo não abre uma
 confirmação genérica do VOLT. Dados temporários da aba fechada podem ser perdidos.
@@ -157,3 +157,7 @@ No Windows, a janela volta a informar os estilos nativos de redimensionamento e 
 ## Ajustes 0.6.6
 
 O cofre vazio agora apresenta uma única ação de importação, sem tabela nem ações desabilitadas. A lista só aparece quando existem logins. No Windows, a área cliente maximizada é limitada à área útil do monitor para não desenhar abas e botões na margem externa da borda nativa. O novo cálculo foi testado com coordenadas positivas e negativas; a aparência real de maximização exige teste em Windows.
+
+## Restauração no Windows — 0.6.7
+
+Ao voltar pela barra de tarefas ou reativar o VOLT, a janela sincroniza a geometria nativa e redesenha os controles visíveis depois das mensagens de restauração. A tela inicial não se reposiciona durante a minimização; a faixa de abas interrompe a animação minimizada e recalcula seus alvos ao voltar. Não são criadas cópias de tela, novos motores nem recargas de abas para esse reparo. A restauração nativa ainda precisa ser validada em Windows real. O AppImage Linux permanece na 0.6.6.

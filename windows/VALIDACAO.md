@@ -1,3 +1,14 @@
+# Verificação Windows 0.6.7
+
+- Compilação e publicação win-x64 concluídas em Linux.
+- 370 verificações de política e geometria, incluindo coalescência de ativação/restauração, cancelamento de callback antigo e ausência de trabalho enquanto minimizada/fechando.
+- Atualização lê geometria nativa, refaz layout dos controles visíveis e repinta após o ciclo de mensagens. Não recarrega páginas nem usa captura de tela.
+- Recuperação de janela maximizada considera a área cliente visível, sem confundir a margem externa da borda em DPI alto com janela fora da tela.
+- NÃO foi possível reproduzir nem validar visualmente o bug de restauração: o ambiente é Linux. Testar em Windows: 20 ciclos pela barra de tarefas com início nativo e página carregada; Alt+Tab; restaurar normal/maximizada; repetir em dois monitores e DPI diferentes. Conferir abas, tema, encaixe, áudio e WhatsApp.
+- Linux não foi alterado; AppImage permanece na versão 0.6.6.
+
+## Registros anteriores
+
 # Verificação 0.6.6
 
 Compilação e publicação win-x64 concluídas; 313 verificações C# passaram, incluindo três casos de recorte da área cliente maximizada. Linux: 41 verificações integradas e 12 verificações do acabamento (dois temas, estados vazio/preenchido e ausência de senha nas colunas). O novo estado vazio não mostra tabela nem ações desabilitadas. A interface nativa e o corte em maximização precisam de validação em Windows real.

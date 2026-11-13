@@ -62,7 +62,7 @@ sealed partial class BrowserWindow
     // Keep the shell's resizing/snap contract while painting our own title bar.
     protected override CreateParams CreateParams
     {
-        get {var p=base.CreateParams;p.Style|=0x00C00000|0x00040000|0x00080000|0x00020000|0x00010000;return p;}
+        get {var p=base.CreateParams;p.ClassStyle|=0x0001|0x0002;p.Style|=0x00C00000|0x00040000|0x00080000|0x00020000|0x00010000;return p;}
     }
     [StructLayout(LayoutKind.Sequential)] struct NativePoint {public int X,Y;}
     [StructLayout(LayoutKind.Sequential)] struct MinMaxInfo {public NativePoint Reserved,MaxSize,MaxPosition,MinTrackSize,MaxTrackSize;}
@@ -84,8 +84,12 @@ sealed partial class BrowserWindow
     {
         if(closing || WindowState==FormWindowState.Minimized)return;
         var screens=Screen.AllScreens;var preferred=Screen.FromPoint(Cursor.Position).WorkingArea;
-        var safe=WindowPlacement.EnsureVisible(Bounds,screens.Select(s=>s.WorkingArea),preferred);
-        if(safe==Bounds)return;
+        // A maximized native frame may extend past the screen at high DPI. Test
+        // the visible client area so a valid maximized window is not "recovered".
+        var visibleBounds=WindowState==FormWindowState.Maximized?RectangleToScreen(ClientRectangle):Bounds;
+        if(WindowPlacement.EnsureVisible(visibleBounds,screens.Select(s=>s.WorkingArea),preferred)==visibleBounds)return;
+        var normal=WindowState==FormWindowState.Maximized && RestoreBounds.Width>0?RestoreBounds:Bounds;
+        var safe=WindowPlacement.EnsureVisible(normal,screens.Select(s=>s.WorkingArea),preferred);
         WindowState=FormWindowState.Normal;Bounds=safe;
     }
     protected override void OnDpiChanged(DpiChangedEventArgs e)
@@ -112,7 +116,13 @@ sealed partial class BrowserWindow
             }
             m.Result=IntPtr.Zero;return;
         }
+        if(m.Msg==0x05 && m.WParam.ToInt32()==1)
+        {
+            restoreWasMinimized=true;restoreRefresh.Cancel();addressSuggestions?.Hide();
+        }
         base.WndProc(ref m);
+        if(m.Msg==0x05 && m.WParam.ToInt32()!=1 && restoreWasMinimized)
+        {restoreWasMinimized=false;RequestRestoreRefresh();}
         if(m.Msg==0x24 && m.LParam!=IntPtr.Zero)
         {
             var info=new MonitorInfo {Size=Marshal.SizeOf<MonitorInfo>()};

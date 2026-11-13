@@ -243,14 +243,14 @@ sealed partial class BrowserWindow : Form
         popup.Items.Add(automatic);
         popup.Items.Add("Diagnóstico das abas", null, (_, _) => ShowTabDiagnostics());
         popup.Items.Add("Memória e otimizações", null, (_, _) => MessageBox.Show(this,
-            "VOLT 0.6.6 • versão experimental\n\nInício nativo: novas abas não carregam WebView2. O prazo de hibernação é configurável no menu. Economia forte descarta abas elegíveis após esse prazo. As primeiras N abas podem ser protegidas pela posição. A limpeza por pressão de RAM é independente do prazo. Áudio, downloads, carregamento e abas marcadas como ativas são preservados.\n\nLiberar abas em segundo plano descarta a página e exige recarregar ao voltar. Use só depois de salvar seu trabalho e terminar uploads/chamadas. Também pode ser automatizado pelo modo opcional de economia forte.\n\nRAM estimada: soma do Working Set do VOLT e dos processos do mesmo perfil WebView2. Pode contar memória compartilhada mais de uma vez; difere do Gerenciador de Tarefas e não inclui crashpad. Se outra janela VOLT compartilhar o perfil, o motor compartilhado também entra na soma.\n\nO bloqueio usa uma pequena lista local de domínios. Se um site falhar, desligue a opção e recarregue. Não é um bloqueador completo de anúncios.\n\nGanho ainda não medido no Windows.", "VOLT"));
+            "VOLT 0.6.7 • versão experimental\n\nInício nativo: novas abas não carregam WebView2. O prazo de hibernação é configurável no menu. Economia forte descarta abas elegíveis após esse prazo. As primeiras N abas podem ser protegidas pela posição. A limpeza por pressão de RAM é independente do prazo. Áudio, downloads, carregamento e abas marcadas como ativas são preservados.\n\nLiberar abas em segundo plano descarta a página e exige recarregar ao voltar. Use só depois de salvar seu trabalho e terminar uploads/chamadas. Também pode ser automatizado pelo modo opcional de economia forte.\n\nRAM estimada: soma do Working Set do VOLT e dos processos do mesmo perfil WebView2. Pode contar memória compartilhada mais de uma vez; difere do Gerenciador de Tarefas e não inclui crashpad. Se outra janela VOLT compartilhar o perfil, o motor compartilhado também entra na soma.\n\nO bloqueio usa uma pequena lista local de domínios. Se um site falhar, desligue a opção e recarregue. Não é um bloqueador completo de anúncios.\n\nGanho ainda não medido no Windows.", "VOLT"));
         menu.Click += (_, _) => { pin.Checked = Current?.KeepAwake == true; popup.Show(menu, new Point(0, menu.Height)); };
         InitializeBookmarks();
         InitializeBrowsingOptions(popup);
         InitializeWindowPlacement();
         timer.Tick += async (_, _) => { await SuspendTabs(false); await SweepWhatsApp(); UpdateChrome(); ReleaseMemoryPressure(); };
         Shown += async (_, _) => { await AddTab(); timer.Start(); };
-        FormClosing += (_, _) => { closing = true; addressSuggestions?.Dispose(); timer.Stop(); outsideWhatsApp?.Dispose(); DisposeWhatsApp(); sidebarLogo?.Image?.Dispose(); foreach (var tab in items.Values) { DisposeView(tab); ClearFavicon(tab); } timer.Dispose(); popup.Dispose(); chromeTips.Dispose(); };
+        FormClosing += (_, _) => { closing = true; restoreRefresh.Cancel(); addressSuggestions?.Dispose(); timer.Stop(); outsideWhatsApp?.Dispose(); DisposeWhatsApp(); sidebarLogo?.Image?.Dispose(); foreach (var tab in items.Values) { DisposeView(tab); ClearFavicon(tab); } timer.Dispose(); popup.Dispose(); chromeTips.Dispose(); };
     }
 
     void SetWebTheme(BrowserView view)
@@ -562,7 +562,7 @@ sealed partial class BrowserWindow : Form
             string state = tab.Unloaded ? "Liberada" : tab.Ready && tab.View!.CoreWebView2.IsSuspended ? "Suspensa" : reason.Length > 0 ? reason : tab.SleepResult;
             details.Add(tab.Title + "\n" + state + $" • {Math.Max(0, (int)(DateTime.UtcNow - tab.HiddenSince).TotalSeconds)} s desde a última saída da aba");
         }
-        using var dialog = new Form { Text = "Diagnóstico das abas — VOLT 0.6.6", Size = new(720, 500), StartPosition = FormStartPosition.CenterParent };
+        using var dialog = new Form { Text = "Diagnóstico das abas — VOLT 0.6.7", Size = new(720, 500), StartPosition = FormStartPosition.CenterParent };
         dialog.Controls.Add(new TextBox { Multiline = true, ReadOnly = true, ScrollBars = ScrollBars.Vertical, Dock = DockStyle.Fill, Text = string.Join("\r\n\r\n", details), Font = new("Segoe UI", 11) });
         dialog.ShowDialog(this);
     }
@@ -728,7 +728,7 @@ sealed partial class BrowserWindow : Form
             item.Page.ToolTipText = item.Title + "\n" + (item.Unloaded ? "Liberada; recarrega ao voltar" : item.SleepResult);
         }
         MeasureMemory();
-        status.Text = $"VOLT 0.6.6 • {items.Count} aba(s) • {sleeping} suspensa(s) • {unloaded} liberada(s) • {blocked} bloqueio(s)" + (deepEconomy ? " • Economia forte" : "") + memory;
+        status.Text = $"VOLT 0.6.7 • {items.Count} aba(s) • {sleeping} suspensa(s) • {unloaded} liberada(s) • {blocked} bloqueio(s)" + (deepEconomy ? " • Economia forte" : "") + memory;
     }
 
     protected override bool ProcessCmdKey(ref Message msg, Keys keyData)

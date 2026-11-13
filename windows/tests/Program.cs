@@ -188,4 +188,14 @@ foreach(var cursor in new[]{new System.Drawing.Point(-1500,-120),new System.Draw
 Check(WindowPlacement.MaximizedClient(new(-8,-8,1936,1056),new(0,0,1920,1040))==new System.Drawing.Rectangle(0,0,1920,1040),"Maximizada remove margem nativa sem cortar topo");
 Check(WindowPlacement.MaximizedClient(new(-1928,-208,1936,1096),new(-1920,-160,1920,1040))==new System.Drawing.Rectangle(-1920,-160,1920,1040),"Área interna maximizada respeita monitor negativo");
 Check(WindowPlacement.MaximizedClient(primaryArea,primaryArea)==primaryArea,"Janela já alinhada não ganha margem adicional");
+var restoreGate=new RestoreRefreshGate();
+Check(!restoreGate.TrySchedule(false,out _),"Janela minimizada/fechada não agenda redesenho");
+Check(restoreGate.TrySchedule(true,out long restoreTicket),"Ativação agenda atualização");
+for(int i=0;i<50;i++)Check(!restoreGate.TrySchedule(true,out _),"Ativação e restauração compartilham um redesenho");
+restoreGate.Cancel();
+Check(restoreGate.TrySchedule(true,out long nextRestore),"Restaurar depois de minimizar agenda novamente");
+Check(!restoreGate.TryComplete(restoreTicket,true),"Callback anterior à minimização não redesenha");
+Check(restoreGate.TryComplete(nextRestore,true),"Callback atual redesenha uma vez");
+Check(!restoreGate.TryComplete(nextRestore,true),"Callback repetido não redesenha novamente");
+Check(restoreGate.TrySchedule(true,out long closingTicket) && !restoreGate.TryComplete(closingTicket,false),"Fechar antes do callback cancela trabalho");
 Console.WriteLine($"{checks} verificações passaram.");

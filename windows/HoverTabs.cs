@@ -120,6 +120,7 @@ sealed class BrowserTabsHeader : Control
     void Frame(object? sender, EventArgs e)
     {
         if (IsDisposed) return;
+        if(FindForm()?.WindowState==FormWindowState.Minimized){animation.Stop();return;}
         if (dragging) AutoScrollDrag();
         Arrange();
         float dt = (float)Math.Clamp(Stopwatch.GetElapsedTime(lastFrame).TotalMilliseconds, 1, 50); lastFrame = Stopwatch.GetTimestamp();
@@ -347,7 +348,17 @@ sealed class BrowserTabsHeader : Control
     { base.OnMouseLeave(e); if (!dragging) { hover = null; hotClose = false; pointer = new(-1, -1); Invalidate(); } }
     protected override void OnMouseWheel(MouseEventArgs e)
     { base.OnMouseWheel(e); start -= Math.Sign(e.Delta); reveal = false; RefreshLayout(); }
-    protected override void OnResize(EventArgs e) { base.OnResize(e); if (model is not null) { reveal = true; RefreshLayout(); } }
+    protected override void OnResize(EventArgs e) { base.OnResize(e); if (model is not null && FindForm()?.WindowState!=FormWindowState.Minimized) { reveal = true; RefreshLayout(); } }
+    internal void RefreshAfterRestore()
+    {
+        if(IsDisposed)return;
+        animation.Stop();reveal=true;Arrange();
+        foreach(var (page,target) in targets)
+        {
+            var visual=visuals[page];visual.X=target.X;visual.Width=target.Width;visual.Opacity=1;
+        }
+        opening.Clear();hits.Clear();Invalidate();
+    }
     protected override void OnHandleCreated(EventArgs e) { base.OnHandleCreated(e); Height = (int)Px(36); RefreshLayout(); }
     protected override void OnDpiChangedAfterParent(EventArgs e) { base.OnDpiChangedAfterParent(e); Height = (int)Px(36); visuals.Clear(); reveal = true; RefreshLayout(); }
     protected override void OnKeyDown(KeyEventArgs e)
