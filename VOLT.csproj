@@ -17,7 +17,7 @@
     <EmbeddedResource Include="Assets/WhatsApp.png" LogicalName="Volt.WhatsAppIcon" />
     <EmbeddedResource Include="Assets/WhatsApp.svg" LogicalName="Volt.WhatsAppSvg" />
     <EmbeddedResource Include="Assets/Volt.ico" LogicalName="Volt.AppIcon" />
-    <EmbeddedResource Include="MediaGuard.js" LogicalName="Volt.MediaGuard.js" />
+    <EmbeddedResource Include="Media/MediaGuard.js" LogicalName="Volt.MediaGuard.js" />
   </ItemGroup>
   <Target Name="RemoveUnusedWpfReference" BeforeTargets="ResolveAssemblyReferences">
     <ItemGroup>

@@ -11,7 +11,7 @@ sealed partial class BrowserWindow
     readonly FlowLayoutPanel bookmarkBar = new() { Dock=DockStyle.Top, Height=28, Padding=new(10,0,10,0), WrapContents=false, AutoScroll=true, Tag="chrome" };
     readonly List<SavedLink> bookmarks = new();
     record SavedLink(string Title, string Url);
-    string BookmarkFile => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"VOLT","bookmarks.json");
+    string BookmarkFile => AppPaths.BookmarkFile;
     void InitializeBookmarks()
     {
         try { if(File.Exists(BookmarkFile)) bookmarks.AddRange(JsonSerializer.Deserialize<List<SavedLink>>(File.ReadAllText(BookmarkFile)) ?? []); }

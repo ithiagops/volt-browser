@@ -1,0 +1,4 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable></PropertyGroup>
+  <ItemGroup><Compile Include="../Engine/RestoreRefreshGate.cs" Link="RestoreRefreshGate.cs" /><Compile Include="../UI/WindowPlacement.cs" Link="WindowPlacement.cs" /><Compile Include="../Security/PasswordRules.cs" Link="PasswordRules.cs" /><Compile Include="../Sidebar/SidebarLayout.cs" Link="SidebarLayout.cs" /><Compile Include="../Tabs/TabCloseSelection.cs" Link="TabCloseSelection.cs" /><Compile Include="../Tabs/TabBlockMove.cs" Link="TabBlockMove.cs" /><Compile Include="../Tabs/TabRangeSelection.cs" Link="TabRangeSelection.cs" /><Compile Include="../Engine/ResourcePolicy.cs" Link="ResourcePolicy.cs" /><Compile Include="../Tabs/TabLayout.cs" Link="TabLayout.cs" /><Compile Include="../Navigation/SiteCatalog.cs" Link="SiteCatalog.cs" /></ItemGroup>
+</Project>

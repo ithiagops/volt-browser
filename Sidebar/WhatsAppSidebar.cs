@@ -143,7 +143,7 @@ sealed partial class BrowserWindow
         whatsAppView=view;whatsAppBody.Controls.Add(view);view.BringToFront();
         try
         {
-            string profile=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"VOLT","Profile");
+            string profile = AppPaths.ProfileDirectory;
             environmentTask??=CoreWebView2Environment.CreateAsync(null,profile);
             var env=await environmentTask;
             if(closing || whatsAppView!=view)return;

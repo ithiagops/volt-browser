@@ -157,15 +157,20 @@ try
     Check(duplicateRejected,"Reject duplicate export headers");
 }
 finally{File.Delete(passwordCsv);}
-foreach(int minutes in new[]{1,5,10,15,30})
+foreach(int minutes in new[]{1,3,5,10,15,30,60})
 {
     Check(!ResourcePolicy.SleepDue(minutes,TimeSpan.FromSeconds(minutes*60-1)),"Prazo configurável preserva até o limite");
     Check(ResourcePolicy.SleepDue(minutes,TimeSpan.FromMinutes(minutes)),"Prazo configurável permite hibernação no limite");
 }
 Check(!ResourcePolicy.SleepDue(0,TimeSpan.FromDays(10)),"Nunca desativa hibernação por tempo");
 Check(!ResourcePolicy.PositionPriority(-1,3),"Índice ausente não recebe prioridade");
-Check(ResourcePolicy.PositionPriority(2,3) && !ResourcePolicy.PositionPriority(3,3),"Primeiras N abas têm prioridade");
+Check(ResourcePolicy.PositionPriority(0,3) && ResourcePolicy.PositionPriority(1,3) && ResourcePolicy.PositionPriority(2,3) && !ResourcePolicy.PositionPriority(3,3),"Primeiras 3 abas têm prioridade");
 Check(!ResourcePolicy.PositionPriority(0,0),"Prioridade desativada por padrão");
+Check(SiteCatalog.Normalize("https://www.youtube.com/") == "youtube.com", "Normalização de URL catálogo");
+Check(SiteCatalog.FindCompletions("you").Contains("youtube.com"), "Autocompletar YouTube pelo prefixo");
+Check(SiteCatalog.FindCompletions("git").Contains("github.com"), "Autocompletar GitHub pelo prefixo");
+Check(SiteCatalog.FindCompletions("glo").Contains("globo.com"), "Autocompletar Globo pelo prefixo");
+Check(SiteCatalog.FindCompletions("minhapagina").Contains("minhapagina.com"), "Autocompletar síntese de domínio .com");
 var primaryArea=new System.Drawing.Rectangle(0,0,1920,1040);
 var leftMonitor=new System.Drawing.Rectangle(-1920,-200,1920,1080);
 var leftWork=new System.Drawing.Rectangle(-1920,-160,1920,1040);

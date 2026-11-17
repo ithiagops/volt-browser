@@ -69,7 +69,7 @@ sealed partial class BrowserWindow : Form
     readonly ToolStripMenuItem pin = new("Manter esta aba ativa") { CheckOnClick = true };
     CoreWebView2Environment? environment;
     Task<CoreWebView2Environment>? environmentTask;
-    readonly string themeFile = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "VOLT", "theme.txt");
+    string themeFile => AppPaths.ThemeFile;
     bool darkMode;
     bool blockTrackers = true;
     bool deepEconomy;
@@ -167,6 +167,13 @@ sealed partial class BrowserWindow : Form
         forward.Click += (_, _) => { if (Current?.View?.CanGoForward == true) Current.View!.GoForward(); };
         reload.Click += (_, _) => { if (Current?.Ready == true) Current.View!.Reload(); };
         home.Click += (_, _) => { if (Current is { } tab && (!tab.Ready || MessageBox.Show(this, "Voltar ao início? A página atual será fechada. Salve alterações e aguarde downloads antes de continuar.", "VOLT", MessageBoxButtons.YesNo) == DialogResult.Yes)) ShowHome(tab); };
+        address.PreviewKeyDown += (_, e) =>
+        {
+            if (e.KeyCode == Keys.Tab && address.SelectionLength > 0 && address.SelectionStart + address.SelectionLength == address.Text.Length)
+            {
+                e.IsInputKey = true;
+            }
+        };
         address.KeyDown += (_, e) => { if (e.KeyCode == Keys.Enter) { e.SuppressKeyPress = true; Navigate(address.Text); } };
         tabs.SelectedIndexChanged += (_, _) => SelectTab();
         try { darkMode = !File.Exists(themeFile) || File.ReadAllText(themeFile).Trim() == "dark"; }
@@ -203,14 +210,11 @@ sealed partial class BrowserWindow : Form
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             { MessageBox.Show(this, "O tema foi aplicado, mas não foi possível salvar a preferência.", "VOLT"); }
         };
-        popup.Items.Add("Senhas — importar e gerenciar…",null,(_,_)=>ShowPasswords());
-        popup.Items.Add(dark);
         BrowserTheme.Apply(this, darkMode);
         if (darkMode) { popup.Renderer = new ToolStripProfessionalRenderer(new DarkMenuColors()); popup.BackColor = BrowserTheme.Surface; popup.ForeColor = BrowserTheme.Text; }
-        var saver = new ToolStripMenuItem("Suspender abas paradas") { Checked = true, CheckOnClick = true };
+        var saver = new ToolStripMenuItem("Modo de economia (suspender abas inativas)") { Checked = true, CheckOnClick = true };
         saver.CheckedChanged += (_, _) => { economy = saver.Checked; if (!economy) foreach (var tab in items.Values) if (tab.Ready) tab.View!.CoreWebView2.Resume(); UpdateChrome(); };
         pin.CheckedChanged += (_, _) => { if (Current is { } tab) tab.KeepAwake = pin.Checked; };
-        popup.Items.Add(saver); popup.Items.Add(pin);
         var mediaPolicy = new ToolStripMenuItem("Pausar mídia ao sair da aba") { Checked = true, CheckOnClick = true };
         mediaPolicy.CheckedChanged += async (_, _) =>
         {
@@ -223,12 +227,8 @@ sealed partial class BrowserWindow : Form
             }
             finally { if (!closing) mediaPolicy.Enabled = true; }
         };
-        popup.Items.Add(mediaPolicy);
-        popup.Items.Add("Suspender abas inativas agora", null, async (_, _) => await SuspendTabs(true));
         var blockers = new ToolStripMenuItem("Bloquear rastreadores conhecidos") { Checked = true, CheckOnClick = true };
         blockers.CheckedChanged += (_, _) => { blockTrackers = blockers.Checked; UpdateChrome(); };
-        popup.Items.Add(blockers);
-        popup.Items.Add("Liberar abas em segundo plano...", null, (_, _) => UnloadBackgroundTabs());
         var deep = new ToolStripMenuItem("Economia forte: descartar após o prazo") { CheckOnClick = false };
         deep.Click += (_, _) =>
         {
@@ -237,20 +237,33 @@ sealed partial class BrowserWindow : Form
                 "Economia forte", MessageBoxButtons.YesNo, MessageBoxIcon.Information) != DialogResult.Yes) return;
             deepEconomy = !deepEconomy; deep.Checked = deepEconomy; UpdateChrome();
         };
-        popup.Items.Add(deep);
         var automatic = new ToolStripMenuItem("Liberar abas automaticamente acima de 1,2 GB") { Checked = true, CheckOnClick = true };
         automatic.CheckedChanged += (_, _) => { automaticMemory = automatic.Checked; memoryPressure = false; };
-        popup.Items.Add(automatic);
-        popup.Items.Add("Diagnóstico das abas", null, (_, _) => ShowTabDiagnostics());
-        popup.Items.Add("Memória e otimizações", null, (_, _) => MessageBox.Show(this,
-            "VOLT 0.6.7 • versão experimental\n\nInício nativo: novas abas não carregam WebView2. O prazo de hibernação é configurável no menu. Economia forte descarta abas elegíveis após esse prazo. As primeiras N abas podem ser protegidas pela posição. A limpeza por pressão de RAM é independente do prazo. Áudio, downloads, carregamento e abas marcadas como ativas são preservados.\n\nLiberar abas em segundo plano descarta a página e exige recarregar ao voltar. Use só depois de salvar seu trabalho e terminar uploads/chamadas. Também pode ser automatizado pelo modo opcional de economia forte.\n\nRAM estimada: soma do Working Set do VOLT e dos processos do mesmo perfil WebView2. Pode contar memória compartilhada mais de uma vez; difere do Gerenciador de Tarefas e não inclui crashpad. Se outra janela VOLT compartilhar o perfil, o motor compartilhado também entra na soma.\n\nO bloqueio usa uma pequena lista local de domínios. Se um site falhar, desligue a opção e recarregue. Não é um bloqueador completo de anúncios.\n\nGanho ainda não medido no Windows.", "VOLT"));
-        menu.Click += (_, _) => { pin.Checked = Current?.KeepAwake == true; popup.Show(menu, new Point(0, menu.Height)); };
         InitializeBookmarks();
-        InitializeBrowsingOptions(popup);
+        BuildBrowserMenu(popup, menu, dark, saver, blockers, mediaPolicy, deep, automatic);
         InitializeWindowPlacement();
         timer.Tick += async (_, _) => { await SuspendTabs(false); await SweepWhatsApp(); UpdateChrome(); ReleaseMemoryPressure(); };
-        Shown += async (_, _) => { await AddTab(); timer.Start(); };
-        FormClosing += (_, _) => { closing = true; restoreRefresh.Cancel(); addressSuggestions?.Dispose(); timer.Stop(); outsideWhatsApp?.Dispose(); DisposeWhatsApp(); sidebarLogo?.Image?.Dispose(); foreach (var tab in items.Values) { DisposeView(tab); ClearFavicon(tab); } timer.Dispose(); popup.Dispose(); chromeTips.Dispose(); };
+        Shown += async (_, _) =>
+        {
+            await AddTab();
+            timer.Start();
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    var info = await UpdateManager.CheckForUpdatesAsync();
+                    if (info.HasUpdate && !closing && IsHandleCreated)
+                    {
+                        BeginInvoke(new Action(() =>
+                        {
+                            status.Text = $"🎉 Nova versão do VOLT disponível: v{info.LatestVersion} (atual: v{info.CurrentVersion})! Abra o menu para atualizar.";
+                        }));
+                    }
+                }
+                catch { }
+            });
+        };
+        FormClosing += (_, _) => { closing = true; restoreRefresh.Cancel(); addressSuggestions?.Dispose(); modernToolsPopup?.Dispose(); timer.Stop(); outsideWhatsApp?.Dispose(); DisposeWhatsApp(); sidebarLogo?.Image?.Dispose(); foreach (var tab in items.Values) { DisposeView(tab); ClearFavicon(tab); } timer.Dispose(); popup.Dispose(); chromeTips.Dispose(); };
     }
 
     void SetWebTheme(BrowserView view)
@@ -349,7 +362,7 @@ sealed partial class BrowserWindow : Form
         tab.View = view; tab.Page.Controls.Add(view); tab.Loading = true;
         try
         {
-            var profile = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "VOLT", "Profile");
+            var profile = AppPaths.ProfileDirectory;
             environmentTask ??= CoreWebView2Environment.CreateAsync(null, profile);
             var env = await environmentTask;
             if (closing || tab.View != view) return;
@@ -388,11 +401,15 @@ sealed partial class BrowserWindow : Form
             {
                 if (pauseBackgroundMedia && tab != Current) _ = ApplyMediaGuard(tab);
             };
-            core.DOMContentLoaded += (_, _) => { tab.DocumentReady = true; _ = ApplyMediaGuard(tab); };
+            core.DOMContentLoaded += (_, _) => { tab.DocumentReady = true; _ = ApplyMediaGuard(tab); _ = UpdateFavicon(tab, view); };
             core.NavigationCompleted += (_, e) =>
             {
                 tab.Loading = false; _ = ApplyMediaGuard(tab);
-                if(!closing && tab.View==view && e.IsSuccess) RememberAddress(core.Source);
+                if(!closing && tab.View==view && e.IsSuccess)
+                {
+                    RememberAddress(core.Source);
+                    _ = UpdateFavicon(tab, view);
+                }
                 if (Current == tab && !e.IsSuccess) status.Text = "Não foi possível carregar a página: " + e.WebErrorStatus;
             };
             core.FaviconChanged += async (_, _) => await UpdateFavicon(tab,view);
@@ -438,7 +455,16 @@ sealed partial class BrowserWindow : Form
     async void Navigate(string input)
     {
         if (Current is not { } tab || string.IsNullOrWhiteSpace(input)) return;
-        await NavigateTab(tab, ResourcePolicy.Address(input));
+        string target = input.Trim();
+        if (!target.Any(char.IsWhiteSpace) && !target.Contains('.') && !target.StartsWith("localhost", StringComparison.OrdinalIgnoreCase))
+        {
+            string? matchedSite = SiteCatalog.PopularSites.FirstOrDefault(s => s.Split('.')[0].Equals(target, StringComparison.OrdinalIgnoreCase));
+            if (matchedSite != null)
+            {
+                target = matchedSite;
+            }
+        }
+        await NavigateTab(tab, ResourcePolicy.Address(target));
         if (!closing && Current == tab && tab.Ready) tab.View!.Focus();
     }
 

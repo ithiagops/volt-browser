@@ -1,163 +1,149 @@
-# VOLT — Navegue sem peso.
+# ⚡ VOLT — Navegue sem peso.
 
-Navegador para Windows e Linux com foco em velocidade, uso consciente de memória e uma
-interface leve e minimalista. O projeto combina gerenciamento de abas, economia automática
-de RAM e WhatsApp integrado à barra lateral.
+> Navegador leve, rápido e consciente de recursos para **Windows** e **Linux**, desenvolvido para oferecer alta performance, consumo inteligente de memória e uma experiência minimalista sem distrações.
 
-**Versão atual: Windows 0.6.7; Linux 0.6.6 — experimental.**
+[![Windows Version](https://img.shields.io/badge/Windows-v0.6.7-blue?logo=windows)](VALIDACAO.md)
+[![Linux Version](https://img.shields.io/badge/Linux-v0.6.6-orange?logo=linux)](linux/VALIDACAO.md)
+[![.NET](https://img.shields.io/badge/.NET-10.0-purple?logo=dotnet)](VOLT.csproj)
+[![WebView2](https://img.shields.io/badge/Engine-WebView2%20%7C%20QtWebEngine-green)](https://developer.microsoft.com/en-us/microsoft-edge/webview2/)
 
-A faixa de abas aceita cliques até seu topo; fechar uma aba ou grupo não abre uma
-confirmação genérica do VOLT. Dados temporários da aba fechada podem ser perdidos.
+---
 
-## Abas, memória e endereços — 0.6.6
+## 🌟 Principais Recursos
 
-- **Menu → Tempo para hibernar:** 1, 5 (padrão), 10, 15 ou 30 minutos; Nunca desliga a hibernação por tempo. A verificação ocorre a cada 15 segundos. Suspensão conserva a página; economia forte descarta e recarrega ao voltar.
-- **Primeiras abas protegidas…:** de 0 (padrão) a 100 abas da esquerda para a direita. A proteção acompanha a ordem atual e vale também para limpeza por RAM e liberação manual. Uma página já descartada é recarregada quando ganha prioridade.
-- A limpeza automática acima de 1,2 GB continua independente do prazo, inclusive em Nunca; preserva abas protegidas, ativas, carregando, com downloads ou áudio.
-- Favicons de 16 × 16 obtidos do motor, sem serviço externo de ícones. São mantidos por aba, inclusive quando hiberna, e liberados ao fechar ou voltar ao início. Não há ganho de RAM comparativo medido.
-- Sugestões locais de favoritos e dos últimos 200 endereços visitados com sucesso. Use setas e Enter para escolher; Windows sugere por prefixo e Linux também por trecho. O menu permite limpar esse histórico sem apagar favoritos. Nenhuma digitação é enviada a um serviço de sugestões.
-- Prazo, quantidade protegida e histórico persistem localmente. No Windows: `%LocalAppData%/VOLT/browsing.json`; no Linux: `settings.json` no diretório de dados do VOLT. Endereços com credenciais embutidas são excluídos das sugestões.
-- O botão + aceita cliques até o topo da faixa de abas, preservando seu desenho circular.
+### 🧠 Gestão Inteligente de Memória e Abas
+- **Hibernação Programada:** Suspenda abas inativas automaticamente após 1, 5 (padrão), 10, 15 ou 30 minutos (ou desative definindo *Nunca*). A rotina verifica o estado a cada 15 segundos.
+- **Proteção de Abas Prioritárias:** Defina de 0 a 100 abas (da esquerda para a direita) que nunca serão hibernadas ou descartadas automaticamente.
+- **Alívio de RAM Automático:** Limpeza preventiva ativada quando a estimativa de consumo do navegador ultrapassa **1,2 GB**, preservando sempre abas protegidas, ativas, com áudio ou em download.
+- **Navegação Eficiente de Abas:** Reordenação por arraste suave, seleção múltipla (Shift/Ctrl), fechamento em lote direto e área clicável estendida até o topo da tela.
 
-## Senhas importadas
+### 🎨 Interface Moderna & Customizável
+- **Novo Painel de Menu:** Botões de ação em formato de pílula, menu de ferramentas com rolagem suave e fechamento automático ao clicar fora.
+- **Temas Claro e Escuro:** Suporte completo com transições suaves e sem tremulação (*anti-flickering*).
+- **Página Inicial Nativa:** Acesso rápido a sites favoritos, atalhos dinâmicos com visual em degradê e campo de busca integrado.
+- **Gerenciamento de Janelas (Snap & Multi-Monitor):** Encaixe nativo (Windows Snap), suporte a coordenadas e posições negativas em múltiplos monitores e sincronização imediata de layout ao restaurar pela barra de tarefas.
 
-Abra **Menu → Senhas — importar e gerenciar… → Importar CSV…** e escolha o CSV
-exportado do navegador ou gerenciador. Chrome, Opera, Edge, Firefox e Bitwarden são
-aceitos quando incluem URL e senha nas colunas esperadas. Registros do mesmo endereço
-(protocolo, domínio e porta) e usuário são atualizados; linhas inválidas são ignoradas.
+### 💬 WhatsApp Web Integrado
+- **Painel Lateral Sobreposto:** Abra e oculte o WhatsApp Web instantaneamente na lateral sem redimensionar ou reposicionar a página em exibição.
+- **Controle em Segundo Plano:** Opção *“Manter ativo”* para preservar conexões e chamadas, ou permitir liberação de memória quando o painel for ocultado.
+- **Privacidade Visual:** Clicar fora do painel oculta o mensageiro instantaneamente.
 
-O VOLT não faz cópia do CSV original. Esse arquivo de exportação contém senhas em texto
-claro: exclua sua cópia após concluir a importação. Nunca o adicione ao repositório.
+### 🔒 Privacidade, Cofre & Segurança Nativa
+- **Cofre Criptografado do Sistema:**
+  - **Windows:** Criptografia local via **DPAPI** do usuário atual (`%LocalAppData%/VOLT/passwords.dpapi`).
+  - **Linux:** Armazenamento seguro via **Secret Service API** (GNOME Keyring / KWallet). Sem fallbacks desprotegidos em texto plano.
+- **Importação de Senhas via CSV:** Compatível com exportações de Chrome, Edge, Firefox, Opera e Bitwarden. Preenchimento conferido por protocolo, domínio e porta, sem envio automático de formulários.
+- **Sugestões de Endereço 100% Locais:** Auto-completar baseado exclusivamente no histórico recente local (últimos 200 sites visitados) e favoritos. Nenhuma tecla digitada é enviada para serviços de terceiros.
+- **Favicons Locais:** Ícones 16×16 extraídos diretamente do motor da página, sem consulta a APIs externas.
 
-- **Windows:** cofre em `%LocalAppData%/VOLT/passwords.dpapi`, criptografado com DPAPI
-  do usuário atual. Não é sincronizado nem portável entre usuários ou instalações do Windows.
-- **Linux:** dados no cofre Secret Service da sessão (por exemplo, GNOME Keyring ou
-  KWallet com Secret Service). O AppImage inclui `secret-tool`; a sessão precisa ter um
-  serviço de cofre disponível e desbloqueado. No código-fonte, instale `libsecret-tools`.
-- Sem cofre Linux disponível, a operação informa o erro e não grava senhas em arquivo
-  desprotegido. Um cofre existente ilegível não é substituído por um vazio na importação.
-- Para usar um login, abra sua página, selecione-o no gerenciador e clique em
-  **Preencher nesta página**. O endereço deve coincidir exatamente (protocolo, domínio e
-  porta); a página também é conferida no instante do preenchimento.
-- Não há envio automático do formulário, cópia para a área de transferência nem
-  preenchimento em frames de outros sites. Não há captura automática de novos logins.
-  Formulários com várias senhas, campos novos/de cadastro ou estruturas especiais podem
-  exigir preenchimento manual.
+---
 
-## Recursos
+## 📁 Estrutura do Projeto
 
-- Página inicial nativa com busca e atalhos arredondados com degradê.
-- Abas com seleção por Shift/Ctrl, fechamento em grupo e reordenação por arraste.
-- Temas claro e escuro com alternância rápida.
-- Favoritos persistentes e downloads.
-- WhatsApp em painel sobreposto e redimensionável: clicar fora oculta o painel sem
-  deslocar a página. A opção “Manter ativo” controla o funcionamento em segundo plano.
-- Áudio em segundo plano e opção de pausar mídia ao trocar de aba.
-- Suspensão de abas inativas e limpeza automática de páginas elegíveis quando a
-  estimativa de memória ultrapassa 1,2 GB.
+O VOLT é estruturado de forma modular e independente entre plataformas:
 
-A meta de memória não é um limite rígido: abas em uso, com áudio, downloads ou proteção
-podem ultrapassá-la. Descartar uma aba exige recarregar e pode perder estado temporário.
-Não há medição comparativa publicada contra outros navegadores.
-
-## Código
-
-| Pasta | Implementação |
-| --- | --- |
-| `windows/` | C# / .NET 10, WinForms e WebView2 |
-| `windows/Installer/` | Instalador Windows com NSIS |
-| `linux/codigo-fonte/` | Python, PySide6 / Qt Widgets e Qt WebEngine |
-| `linux/` | Iniciador, atalho e documentação Linux |
-| `docs/` | Preparação das versões para download |
-
-As duas plataformas têm implementações próprias. As correções equivalentes devem ser
-verificadas em cada uma; o projeto não usa uma única interface compartilhada.
-
-## Windows
-
-Requer SDK .NET 10 para desenvolvimento e WebView2 Runtime para navegar.
-
-```powershell
-dotnet run --project windows/VOLT.csproj
-dotnet run --project windows/tests/PolicyChecks.csproj -c Release
-dotnet publish windows/VOLT.csproj -c Release -r win-x64 --self-contained true -o windows/dist/VOLT-0.6.6
+```text
+volt-browser/
+├── Assets/                 # Ícones, vetores e identidades visuais (Volt, WhatsApp)
+├── Engine/                 # Políticas de recursos, ciclo de vida e gerenciador de atualizações
+├── Installer/              # Script de compilação e instalador NSIS (Windows)
+├── Media/                  # Controle de reprodução em segundo plano e mídia
+├── Navigation/             # Histórico, catálogo de sites, sugestões e favoritos
+├── Security/               # Cofre de senhas local (DPAPI) e regras de preenchimento
+├── Sidebar/                # Painel lateral expansível com WhatsApp Web
+├── Tabs/                   # Gestão de abas: hibernação, layout, seleção e arraste
+├── UI/                     # Menus modernos, temas, controles de janela e Win32 Chrome
+├── tests/                  # Suíte de testes automatizados de política e geometria
+├── linux/                  # Implementação Linux (Python, PySide6 / QtWebEngine)
+├── Criar-Portable.ps1      # Gerador de distribuição portátil para Windows
+├── VOLT.csproj             # Projeto principal C# / .NET 10 (Windows)
+└── README.md
 ```
 
-Para gerar o instalador, instale NSIS 3.11 ou compatível e execute:
+---
 
+## 🛠️ Como Compilar e Executar
+
+### 🪟 Windows (.NET 10 + WebView2)
+
+#### Pré-requisitos
+- [.NET 10 SDK](https://dotnet.microsoft.com/)
+- [Microsoft Edge WebView2 Runtime](https://developer.microsoft.com/en-us/microsoft-edge/webview2/) (já incluso no Windows 10/11)
+
+#### Executar em modo de desenvolvimento
 ```powershell
-powershell -ExecutionPolicy Bypass -File windows/Installer/build.ps1
+dotnet run --project VOLT.csproj
 ```
 
-Esse script baixa o bootstrapper oficial do WebView2 e gera o instalador localmente.
-A versão autocontida inclui o .NET. O instalador prepara o WebView2, se ausente,
-com internet, e instala o VOLT para o usuário atual.
+#### Executar os testes automatizados
+```powershell
+dotnet run --project tests/PolicyChecks.csproj -c Release
+```
 
-## Linux
+#### Gerar Versão Portátil (Standalone)
+Gera uma pasta autocontida pronta para uso em `dist/VOLT-Portable/`:
+```powershell
+.\Criar-Portable.ps1
+# ou execute:
+.\GERAR-PORTABLE.cmd
+```
 
-Código-fonte: Python 3.10+, glibc 2.34+ e dependências gráficas do Qt. O iniciador cria
-um ambiente virtual local e baixa as dependências na primeira execução:
+#### Gerar Instalador (.exe via NSIS)
+Requer [NSIS 3.11+](https://nsis.sourceforge.io/):
+```powershell
+powershell -ExecutionPolicy Bypass -File Installer/build.ps1
+```
 
+---
+
+### 🐧 Linux (Python 3.10+ & QtWebEngine)
+
+#### Início Rápido
+O script inicializador configura automaticamente o ambiente virtual (`.venv`) e as dependências na primeira execução:
 ```bash
 chmod +x linux/INICIAR-VOLT.sh
 ./linux/INICIAR-VOLT.sh
 ```
 
-Ou instale manualmente:
-
+#### Instalação Manual
 ```bash
 python3 -m venv linux/.venv
 linux/.venv/bin/pip install -r linux/codigo-fonte/requirements.txt
 linux/.venv/bin/python linux/codigo-fonte/volt.py
 ```
 
-Testes de políticas:
-
+#### Testes no Linux
 ```bash
+# Testes unitários de política:
 python3 -m unittest discover -s linux/codigo-fonte/tests -p 'test_*.py'
-```
 
-Teste integrado em ambiente sem monitor, com dependências Qt instaladas:
-
-```bash
+# Smoke test integrado (offscreen / sem display):
 QT_QPA_PLATFORM=offscreen linux/.venv/bin/python linux/codigo-fonte/tests/smoke.py
 ```
 
-O AppImage 0.6.1 distribuído anteriormente exige x86_64 e glibc 2.39+.
-Compatibilidade de um novo executável depende do sistema usado na compilação.
-Consulte `linux/LEIA-ME.md` para as dependências de cada distribuição.
+---
 
-## Downloads e validação
+## 💾 Localização dos Dados do Usuário
 
-Instaladores, AppImage e pacotes portáteis ficam em **Releases**, quando publicados.
-Eles não devem ser adicionados ao histórico do código. Veja `docs/RELEASES.md`.
+Os dados de perfil, histórico local, favoritos e o cofre de senhas ficam isolados da pasta de instalação:
 
-As compilações e verificações estão documentadas em
-`windows/VALIDACAO.md` e `linux/VALIDACAO.md`. Os testes offscreen do Linux não substituem
-validação em um desktop físico. O instalador e a interface Windows precisam de teste no
-Windows; login real do WhatsApp, áudio físico, codecs e serviços com DRM também precisam
-de validação específica. Não há atualizador automático de versões do aplicativo.
+| Plataforma | Caminho dos Dados |
+| :--- | :--- |
+| **Windows** | `%LocalAppData%\VOLT\` (Configurações em `browsing.json`, cofre em `passwords.dpapi`) |
+| **Linux** | `~/.local/share/VOLT/` ou diretório correspondente da sessão XDG |
 
-## Componentes de terceiros
+A desinstalação ou atualização do navegador preserva o diretório de dados do usuário.
 
-As bibliotecas mantêm suas próprias licenças. Os avisos de Qt/PySide6 e outros componentes
-incluídos na distribuição Linux estão em `linux/LICENCAS/`. O projeto ainda não definiu
-uma licença geral para o código do VOLT.
+---
 
-## Local de instalação no Windows
+## 🧪 Validação e Qualidade
 
-O instalador usa `%LocalAppData%\Programs\VOLT` na primeira instalação. Quando encontra uma instalação existente registrada (ou na pasta padrão), informa o local na tela inicial e atualiza essa mesma pasta, sem solicitar outro destino. Favoritos, configurações, perfil e cofre ficam separados em `%LocalAppData%\VOLT`. Feche o VOLT antes de atualizar.
+- **Windows:** Mais de 370 verificações automatizadas de integridade de layout, restauração da barra de tarefas, mitigação de flickering e políticas de consumo de memória. Detalhes completos em [VALIDACAO.md](VALIDACAO.md).
+- **Linux:** Suíte de testes com verificações integradas e cobertura de renderização dos temas. Detalhes em [linux/VALIDACAO.md](linux/VALIDACAO.md).
 
-## Acabamento e janelas — 0.6.6
+---
 
-As sugestões de endereço têm painel próprio no Windows e estilo explícito no Linux, com fundo e seleção seguindo o tema. O gerenciador de senhas tem cabeçalho, espaçamento, lista e botões reformulados; as regras do cofre e preenchimento não mudaram.
+## 📄 Licenças & Terceiros
 
-No Windows, a janela volta a informar os estilos nativos de redimensionamento e encaixe. O cálculo de maximização respeita a área útil do monitor, incluindo monitores em posições negativas. O arraste transmite a posição real do cursor e janelas em monitores desconectados são recuperadas para uma área visível. Win + setas e Win + Shift + setas são tratados pelo próprio Windows; dependem de o encaixe de janelas estar habilitado no sistema. O comportamento nativo precisa de teste em Windows real com dois monitores.
-
-## Ajustes 0.6.6
-
-O cofre vazio agora apresenta uma única ação de importação, sem tabela nem ações desabilitadas. A lista só aparece quando existem logins. No Windows, a área cliente maximizada é limitada à área útil do monitor para não desenhar abas e botões na margem externa da borda nativa. O novo cálculo foi testado com coordenadas positivas e negativas; a aparência real de maximização exige teste em Windows.
-
-## Restauração no Windows — 0.6.7
-
-Ao voltar pela barra de tarefas ou reativar o VOLT, a janela sincroniza a geometria nativa e redesenha os controles visíveis depois das mensagens de restauração. A tela inicial não se reposiciona durante a minimização; a faixa de abas interrompe a animação minimizada e recalcula seus alvos ao voltar. Não são criadas cópias de tela, novos motores nem recargas de abas para esse reparo. A restauração nativa ainda precisa ser validada em Windows real. O AppImage Linux permanece na 0.6.6.
+- Componentes e bibliotecas de terceiros preservam suas respectivas licenças.
+- Avisos de licença das dependências Qt/PySide6 estão disponíveis em [linux/LICENCAS/](linux/LICENCAS/).

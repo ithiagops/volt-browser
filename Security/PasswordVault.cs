@@ -5,7 +5,7 @@ namespace Volt;
 
 static class PasswordVault
 {
-    static string FilePath=>Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"VOLT","passwords.dpapi");
+    static string FilePath => AppPaths.PasswordsFile;
     static T Locked<T>(Func<T> operation)
     {
         using var gate=new Mutex(false,"Local\\VOLT.PasswordVault");bool held=false;
