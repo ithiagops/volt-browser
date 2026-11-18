@@ -41,6 +41,10 @@ internal static class WindowSmoke
                 bool good=home.Dark?pixel.R>8&&pixel.B>20&&pixel.B<110:pixel.R>90&&pixel.G>90&&pixel.B>90&&pixel.R<252;
                 Check(good,name+": actual screen has no black/white stale home blocks");
             }
+            var footer=Descendants(window).OfType<Label>().Single(l=>l.Text.StartsWith("VOLT 0.6."));
+            Check(home.Dark?footer.ForeColor.GetBrightness()>0.65:footer.ForeColor.GetBrightness()<0.45,name+": footer text follows theme contrast");
+            var bookmarkHint=Descendants(window).OfType<Label>().Single(l=>l.Text.StartsWith("Seus favoritos ficam aqui"));
+            Check(home.Dark?bookmarkHint.BackColor.GetBrightness()<0.3:bookmarkHint.BackColor.GetBrightness()>0.7,name+": inherited label background follows theme");
             var search=home.Controls.OfType<RoundedSurface>().Single();Check(home.ClientRectangle.Contains(search.Bounds),name+": search is inside viewport");
         }
         if(screenshot)image.Save(Path.Combine(output,name+".png"),ImageFormat.Png);

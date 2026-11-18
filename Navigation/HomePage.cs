@@ -61,7 +61,7 @@ sealed class HomePage : Panel
         if(ClientSize.Width<1||ClientSize.Height<1)return;
         using var bg=new LinearGradientBrush(ClientRectangle,Dark?Color.FromArgb(27,37,51):Color.FromArgb(223,233,243),Dark?Color.FromArgb(36,33,45):Color.FromArgb(236,215,208),75f);
         e.Graphics.FillRectangle(bg,ClientRectangle);
-        using var hills=new SolidBrush(Dark?Color.FromArgb(44,51,70):Color.FromArgb(112,145,155));
+        using var hills=new SolidBrush(Dark?Color.FromArgb(44,51,70):Color.FromArgb(55,112,145,155));
         int w=ClientSize.Width,h=ClientSize.Height;
         e.Graphics.FillPolygon(hills,[new(0,h),new(0,h*3/4),new(w/5,h*3/5),new(w/2,h*4/5),new(w*4/5,h*2/3),new(w,h*3/4),new(w,h)]);
         TextRenderer.DrawText(e.Graphics,"V O L T",brandFont,titleBounds,Dark?Color.FromArgb(229,236,244):Color.FromArgb(37,51,67),TextFormatFlags.HorizontalCenter|TextFormatFlags.VerticalCenter|TextFormatFlags.NoPrefix);

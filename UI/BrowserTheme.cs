@@ -4,29 +4,37 @@ namespace Volt;
 
 static class BrowserTheme
 {
-    sealed record Original(Color Back, Color Fore, Color Border);
+    sealed record Original(Color Back, Color Fore, Color Border, bool InheritedBack, bool InheritedFore);
     static readonly ConditionalWeakTable<Control, Original> originals = new();
     public static Color Background => Color.FromArgb(24, 30, 39);
     public static Color Surface => Color.FromArgb(35, 43, 54);
     public static Color Text => Color.FromArgb(229, 236, 244);
-    public static void Apply(Control control, bool dark)
+    static void Remember(Control control)
+    {
+        if(control is BrowserView)return;
+        originals.GetValue(control,c=>new(c.BackColor,c.ForeColor,c is Button b?b.FlatAppearance.BorderColor:Color.Empty,
+            System.ComponentModel.TypeDescriptor.GetProperties(c)[nameof(Control.BackColor)]?.ShouldSerializeValue(c)!=true,
+            System.ComponentModel.TypeDescriptor.GetProperties(c)[nameof(Control.ForeColor)]?.ShouldSerializeValue(c)!=true));
+        foreach(Control child in control.Controls)Remember(child);
+    }
+    public static void Apply(Control control,bool dark){Remember(control);ApplyCore(control,dark);}
+    static void ApplyCore(Control control, bool dark)
     {
         if (control is BrowserView) return;
         if (control is ChromeButton painted) painted.DarkTheme=dark;
         if (control is BrowserTabsHeader headerState) headerState.Dark=dark;
         if (control is HomePage homeState) homeState.Dark=dark;
-        var original = originals.GetValue(control, c => new(c.BackColor, c.ForeColor,
-            c is Button b ? b.FlatAppearance.BorderColor : Color.Empty));
+        var original = originals.GetValue(control,_=>throw new InvalidOperationException("Tema sem estado inicial."));
         bool chrome = Equals(control.Tag,"chrome") || control is BrowserTabsHeader;
         bool surface = Equals(control.Tag,"surface") || control is TextBox;
         control.BackColor = dark ? original.Back.A == 0 ? Color.Transparent
             : Equals(control.Tag,"search") ? Color.FromArgb(24,31,41) : chrome ? Background : surface ? Surface : control is ChromeButton ? Color.FromArgb(29,37,49) : Background
-            : chrome ? Color.FromArgb(239,244,248) : surface ? Color.White : original.Back;
-        control.ForeColor = dark ? Text : original.Fore;
+            : chrome ? Color.FromArgb(239,244,248) : surface ? Color.White : control is BrowserPage ? Color.FromArgb(240,243,248) : original.InheritedBack ? control.Parent?.BackColor??Color.FromArgb(240,243,248) : original.Back;
+        control.ForeColor = dark ? Text : original.InheritedFore ? Color.FromArgb(37,51,67) : original.Fore;
         if (control is Button button) button.FlatAppearance.BorderColor = dark ? Color.FromArgb(70, 86, 104) : original.Border;
         if (control is BrowserTabsHeader header) header.Dark = dark;
         if (control is HomePage home) home.Dark = dark;
-        foreach (Control child in control.Controls) Apply(child, dark);
+        foreach (Control child in control.Controls) ApplyCore(child, dark);
         control.Invalidate();
     }
 }
