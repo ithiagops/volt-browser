@@ -1,3 +1,29 @@
+# Windows 0.6.8 — validação de transições
+
+A base é o merge `e220caac78ad1239ddb80e5550274b11e34584db` de 17/11/2026, preservando o menu, o modo portátil e o atualizador adicionados ao projeto.
+
+## Execução nativa em Windows
+
+[Execução aprovada no GitHub Actions](https://github.com/ithiagops/volt-browser/actions/runs/44316932698), commit de código `a08d10a887ccd1bcadbec9152f49272597c96efd`:
+
+- 393 verificações de políticas e movimentos.
+- 279 verificações no programa nativo com mensagem de conclusão `WINDOW_SMOKE_OK`.
+- 12 ciclos de minimizar/restaurar alternando normal e maximizada; abertura de 8 abas, fechamento de 6, reordenação e 4 mudanças de tema.
+- Abertura, reversão e fechamento do painel lateral sem mudar a área da página.
+- Uma página servida apenas em localhost no WebView2, mais 4 ciclos de minimizar/maximizar e reordenação sem recriar o controlador.
+- Captura da tela real verificou ausência de blocos pretos/brancos em amostras da página inicial e pixels esperados da página local restaurada. As capturas foram inspecionadas.
+- Perfil e configurações isolados pelo modo portátil; nenhuma senha real importada.
+
+## Limites
+
+A execução cobre o ambiente Windows do runner. Não prova todos os quadros de animação, duas telas físicas, escalas DPI mistas, drivers de GPU do usuário nem sites externos. O movimento opcional depende das preferências do Windows. É necessário conferir esses cenários no computador real. Não há benchmark comparativo de RAM.
+
+## Mudança técnica
+
+Removidos o TabControl nativo escondido, a captura de tela/overlay e WM_SETREDRAW nas transições. A ordem das páginas não troca seus pais. A tela inicial é uma superfície opaca única; o painel lateral anima posição sem redimensionar o motor. A lógica de hibernação, áudio, cofre e importação foi preservada.
+
+## Registros anteriores
+
 # Verificação Windows 0.6.7
 
 - Compilação e publicação win-x64 concluídas em Linux.

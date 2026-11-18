@@ -2,7 +2,7 @@
 
 > Navegador leve, rápido e consciente de recursos para **Windows** e **Linux**, desenvolvido para oferecer alta performance, consumo inteligente de memória e uma experiência minimalista sem distrações.
 
-[![Windows Version](https://img.shields.io/badge/Windows-v0.6.7-blue?logo=windows)](VALIDACAO.md)
+[![Windows Version](https://img.shields.io/badge/Windows-v0.6.8-blue?logo=windows)](VALIDACAO.md)
 [![Linux Version](https://img.shields.io/badge/Linux-v0.6.6-orange?logo=linux)](linux/VALIDACAO.md)
 [![.NET](https://img.shields.io/badge/.NET-10.0-purple?logo=dotnet)](VOLT.csproj)
 [![WebView2](https://img.shields.io/badge/Engine-WebView2%20%7C%20QtWebEngine-green)](https://developer.microsoft.com/en-us/microsoft-edge/webview2/)
@@ -147,3 +147,12 @@ A desinstalação ou atualização do navegador preserva o diretório de dados d
 
 - Componentes e bibliotecas de terceiros preservam suas respectivas licenças.
 - Avisos de licença das dependências Qt/PySide6 estão disponíveis em [linux/LICENCAS/](linux/LICENCAS/).
+
+## Estabilidade visual — Windows 0.6.8
+
+- A área de páginas usa um contêiner gerenciado. Ao reordenar abas, os controles e os motores das páginas ficam ligados ao mesmo pai; só a ordem muda.
+- Foram removidos a captura da tela, a janela de cobertura e o bloqueio global de redesenho usados nas transições. Temas, seleção, abertura/fechamento e painel lateral compõem a interface real.
+- A tela inicial desenha fundo, marca e subtítulo em uma única superfície opaca com buffer. Campo de busca e atalhos continuam sendo controles interativos.
+- A faixa de abas mantém o movimento breve dos elementos. O painel do WhatsApp desliza por 150 ms sem redimensionar a página por baixo; inverter a ação parte da posição atual. As animações respeitam a preferência do Windows.
+- Validação nativa: [Windows visual regression](https://github.com/ithiagops/volt-browser/actions/runs/44316932698), com 279 verificações incluindo pixels reais de início e WebView2 local após ciclos de restauração. Mais 393 verificações de política passaram. Isso não substitui testes com outras GPUs, dois monitores e escalas diferentes.
+- A versão Linux não mudou nesta correção específica do renderizador Windows.
