@@ -26,7 +26,7 @@ Write-Host ""
 # Obter versão do projeto
 [xml]$xml = Get-Content $Csproj
 $version = $xml.Project.PropertyGroup.Version
-if (-not $version) { $version = "0.6.7" }
+if (-not $version) { $version = "0.6.8" }
 Write-Host "[1/4] Versão identificada: $version ($Runtime | $Configuration)" -ForegroundColor Yellow
 
 $DistDir = Join-Path $ProjectDir "dist"

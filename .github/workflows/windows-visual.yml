@@ -1,0 +1,26 @@
+name: Windows visual regression
+on:
+  push:
+    branches: [main, fix/window-transitions-068]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  native-window:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Policy checks
+        run: dotnet run --project tests/PolicyChecks.csproj -c Release
+      - name: Native window and local WebView2 transitions
+        run: dotnet run --project tests/WindowSmoke/WindowSmoke.csproj -c Release -- window-smoke-results
+      - name: Screenshots and report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-visual-report
+          path: window-smoke-results

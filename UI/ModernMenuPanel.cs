@@ -406,7 +406,7 @@ sealed partial class BrowserWindow
             if (darkMode != modernDarkCheck.Checked)
             {
                 darkMode = modernDarkCheck.Checked;
-                using (var redraw = new ThemeRedraw(this)) BrowserTheme.Apply(this, darkMode);
+                using (var redraw = new VisualUpdate(this)) BrowserTheme.Apply(this, darkMode);
                 addressSuggestions?.ApplyTheme(darkMode);
                 ApplyModernMenuTheme(darkMode);
                 BeginInvoke(new Action(() =>

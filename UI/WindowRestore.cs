@@ -17,7 +17,7 @@ sealed partial class BrowserWindow
                 if(!restoreRefresh.TryComplete(ticket,CanRefreshWindow))return;
                 // Re-read native geometry after WM_SIZE/DPI/activation have settled.
                 // Never restore a screenshot or re-enable redraw on hidden pages.
-                UpdateBounds();RecoverWindowPlacement();
+                UpdateBounds();RecoverWindowPlacement();FinishWhatsAppMotion();
                 if(!CanRefreshWindow || ClientSize.Width<1 || ClientSize.Height<1)return;
                 void LayoutVisible(Control control)
                 {
@@ -28,9 +28,9 @@ sealed partial class BrowserWindow
                 if(Current is { } tab)
                 {
                     foreach(var home in tab.Page.Controls.OfType<HomePage>())home.RefreshAfterRestore();
-                    if(tab.View is { } web){web.SetPageVisible(true,true);web.Invalidate();}
+                    if(tab.View is { } web){web.SetPageVisible(true);web.Invalidate();}
                 }
-                if(whatsAppPanel.Visible && whatsAppView is { } whatsapp)whatsapp.SetPageVisible(true,true);
+                if(whatsAppPanel.Visible && whatsAppView is { } whatsapp)whatsapp.SetPageVisible(true);
                 Invalidate(true);
                 // Erase, invalidate and repaint the frame and all visible native children.
                 RedrawWindow(Handle,IntPtr.Zero,IntPtr.Zero,0x585);

@@ -29,7 +29,7 @@ static class UpdateManager
         get
         {
             var ver = typeof(UpdateManager).Assembly.GetName().Version;
-            return ver != null ? new Version(ver.Major, ver.Minor, Math.Max(0, ver.Build)) : new Version(0, 6, 7);
+            return ver != null ? new Version(ver.Major, ver.Minor, Math.Max(0, ver.Build)) : new Version(0, 6, 8);
         }
     }
 

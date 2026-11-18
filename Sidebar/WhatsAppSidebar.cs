@@ -9,6 +9,10 @@ sealed partial class BrowserWindow
     readonly Panel whatsAppSplitter=new(){Dock=DockStyle.None,Width=5,Visible=false,Cursor=Cursors.SizeWE,Tag="chrome"};
     readonly CheckBox whatsAppKeepActive=new(){Text="Manter ativo",Checked=true,Dock=DockStyle.Right,Width=125,AccessibleName="Manter WhatsApp ativo em segundo plano"};
     readonly Label whatsAppStatus=new(){Dock=DockStyle.Fill,Text="Abra o WhatsApp para conectar sua conta.",TextAlign=ContentAlignment.MiddleCenter,Tag="surface"};
+    readonly System.Windows.Forms.Timer whatsAppMotion=new(){Interval=16};
+    bool whatsAppRequested,whatsAppMoving;
+    int whatsAppMotionStart;
+    long whatsAppMotionTime;
     Point? whatsAppDragStart;
     int whatsAppDragWidth;
     OutsidePanelClick? outsideWhatsApp;
@@ -67,7 +71,8 @@ sealed partial class BrowserWindow
         };
         whatsAppSplitter.MouseUp+=(_,_)=>{whatsAppDragStart=null;whatsAppSplitter.Capture=false;};
         whatsAppSplitter.MouseCaptureChanged+=(_,_)=>{if(!whatsAppSplitter.Capture)whatsAppDragStart=null;};
-        content.Resize+=(_,_)=>{if(whatsAppPanel.Visible)LayoutWhatsAppOverlay();};
+        content.Resize+=(_,_)=>{if(whatsAppPanel.Visible){FinishWhatsAppMotion();LayoutWhatsAppOverlay();}};
+        whatsAppMotion.Tick+=(_,_)=>StepWhatsAppMotion();
     }
     void ShowSidebarFavorites(Control source)
     {
@@ -80,7 +85,7 @@ sealed partial class BrowserWindow
     }
     async Task ToggleWhatsApp()
     {
-        if(whatsAppPanel.Visible){HideWhatsApp();return;}
+        if(whatsAppRequested){HideWhatsApp();return;}
         SetWhatsAppLayout(true);
         if(whatsAppView?.CoreWebView2 is {} core){core.Resume();whatsAppView.SetPageVisible(true,true);}
         else await EnsureWhatsApp();
@@ -93,33 +98,49 @@ sealed partial class BrowserWindow
     void SetWhatsAppLayout(bool visible)
     {
         if(browserContent is null || closing)return;
-        // Exclude controls that will be hidden: WM_SETREDRAW(TRUE) may restore WS_VISIBLE.
-        // Keep the transition synchronous; never hold a screen cover across WebView initialization.
-        using var redraw=new ThemeRedraw(this,c=>c==whatsAppPanel || c==whatsAppSplitter);
-        browserContent.SuspendLayout();
-        try
+        bool wasVisible=whatsAppPanel.Visible;
+        whatsAppRequested=visible;whatsAppMotion.Stop();
+        if(visible)
         {
-            if(!visible)whatsAppView?.SetPageVisible(false,true);
-            if(visible)
-            {
-                int preferred=whatsAppView is null?(int)(760*DeviceDpi/96f):whatsAppPanel.Width;
-                whatsAppPanel.Width=SidebarLayout.Width(browserContent.ClientSize.Width,preferred);
-                LayoutWhatsAppOverlay();
-                whatsAppPanel.BringToFront();whatsAppSplitter.BringToFront();
-            }
-            whatsAppPanel.Visible=visible;
-            whatsAppSplitter.Visible=visible;
+            int preferred=whatsAppView is null?(int)(760*DeviceDpi/96f):whatsAppPanel.Width;
+            whatsAppPanel.Width=SidebarLayout.Width(browserContent.ClientSize.Width,preferred);
+            if(!wasVisible)whatsAppPanel.Left=-whatsAppPanel.Width;
+            whatsAppPanel.Visible=true;whatsAppSplitter.Visible=true;
+            whatsAppPanel.BringToFront();whatsAppSplitter.BringToFront();
         }
-        finally { browserContent.ResumeLayout(true); }
-        RefreshBrowserContent();
+        whatsAppMotionStart=whatsAppPanel.Left;whatsAppMotionTime=System.Diagnostics.Stopwatch.GetTimestamp();
+        whatsAppMoving=SystemInformation.IsMenuAnimationEnabled && Visible && WindowState!=FormWindowState.Minimized && (visible||wasVisible);
+        LayoutWhatsAppOverlay();
+        if(whatsAppMoving)whatsAppMotion.Start();else FinishWhatsAppMotion();
         if(visible)outsideWhatsApp?.Start();else outsideWhatsApp?.Stop();
+    }
+    void StepWhatsAppMotion()
+    {
+        if(closing || WindowState==FormWindowState.Minimized){FinishWhatsAppMotion();return;}
+        double t=System.Diagnostics.Stopwatch.GetElapsedTime(whatsAppMotionTime).TotalMilliseconds/150;
+        int end=whatsAppRequested?0:-whatsAppPanel.Width;
+        int left=Motion.Position(whatsAppMotionStart,end,t);
+        var old=whatsAppPanel.Bounds;
+        whatsAppPanel.Left=left;whatsAppSplitter.Left=left+whatsAppPanel.Width;
+        browserContent?.Invalidate(Rectangle.Union(old,whatsAppPanel.Bounds),true);
+        if(t>=1)FinishWhatsAppMotion();
+    }
+    void FinishWhatsAppMotion()
+    {
+        whatsAppMotion.Stop();whatsAppMoving=false;
+        whatsAppPanel.Left=whatsAppRequested?0:-whatsAppPanel.Width;
+        whatsAppSplitter.Left=whatsAppPanel.Right;
+        whatsAppPanel.Visible=whatsAppSplitter.Visible=whatsAppRequested;
+        if(!whatsAppRequested)whatsAppView?.SetPageVisible(false,true);
+        RefreshBrowserContent();
     }
     void LayoutWhatsAppOverlay()
     {
         if(browserContent is null)return;
         int width=SidebarLayout.Width(browserContent.ClientSize.Width,whatsAppPanel.Width);
-        whatsAppPanel.SetBounds(0,0,width,browserContent.ClientSize.Height);
-        whatsAppSplitter.SetBounds(width,0,5,browserContent.ClientSize.Height);
+        int left=whatsAppMoving?whatsAppPanel.Left:(whatsAppRequested?0:-width);
+        whatsAppPanel.SetBounds(left,0,width,browserContent.ClientSize.Height);
+        whatsAppSplitter.SetBounds(left+width,0,5,browserContent.ClientSize.Height);
     }
     void RefreshBrowserContent()
     {
@@ -133,7 +154,7 @@ sealed partial class BrowserWindow
         }
         // Home uses a viewport-relative gradient and polygon: repaint the complete final bounds.
         browserContent.Invalidate(true);
-        browserContent.Update();
+        // Let the message loop compose the complete frame once.
     }
     async Task EnsureWhatsApp()
     {

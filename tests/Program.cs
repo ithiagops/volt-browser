@@ -203,4 +203,13 @@ Check(!restoreGate.TryComplete(restoreTicket,true),"Callback anterior à minimiz
 Check(restoreGate.TryComplete(nextRestore,true),"Callback atual redesenha uma vez");
 Check(!restoreGate.TryComplete(nextRestore,true),"Callback repetido não redesenha novamente");
 Check(restoreGate.TrySchedule(true,out long closingTicket) && !restoreGate.TryComplete(closingTicket,false),"Fechar antes do callback cancela trabalho");
+Check(Motion.Ease(-1)==0 && Motion.Ease(2)==1,"Movimento limitado aos extremos");
+Check(Motion.Position(-720,0,0)==-720 && Motion.Position(-720,0,1)==0,"Painel começa e termina na posição exata");
+int lastMotion=-720;
+for(int frame=0;frame<=10;frame++)
+{
+    int current=Motion.Position(-720,0,frame/10.0);
+    Check(current>=lastMotion && current<=0,"Movimento do painel é contínuo e não ultrapassa a posição final");lastMotion=current;
+}
+Check(Motion.Position(-320,-720,0)==-320,"Reverter painel parte da posição atual sem salto");
 Console.WriteLine($"{checks} verificações passaram.");

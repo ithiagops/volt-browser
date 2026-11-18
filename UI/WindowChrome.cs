@@ -62,7 +62,7 @@ sealed partial class BrowserWindow
     // Keep the shell's resizing/snap contract while painting our own title bar.
     protected override CreateParams CreateParams
     {
-        get {var p=base.CreateParams;p.ClassStyle|=0x0001|0x0002;p.Style|=0x00C00000|0x00040000|0x00080000|0x00020000|0x00010000;return p;}
+        get {var p=base.CreateParams;p.Style|=0x02000000|0x04000000|0x00C00000|0x00040000|0x00080000|0x00020000|0x00010000;return p;}
     }
     [StructLayout(LayoutKind.Sequential)] struct NativePoint {public int X,Y;}
     [StructLayout(LayoutKind.Sequential)] struct MinMaxInfo {public NativePoint Reserved,MaxSize,MaxPosition,MinTrackSize,MaxTrackSize;}
@@ -114,11 +114,11 @@ sealed partial class BrowserWindow
                     Marshal.StructureToPtr(proposed,m.LParam,false);
                 }
             }
-            m.Result=IntPtr.Zero;return;
+            m.Result=m.WParam!=IntPtr.Zero?(IntPtr)0x300:IntPtr.Zero;return;
         }
         if(m.Msg==0x05 && m.WParam.ToInt32()==1)
         {
-            restoreWasMinimized=true;restoreRefresh.Cancel();addressSuggestions?.Hide();
+            restoreWasMinimized=true;restoreRefresh.Cancel();addressSuggestions?.Hide();modernToolsPopup?.Close();whatsAppMotion.Stop();
         }
         base.WndProc(ref m);
         if(m.Msg==0x05 && m.WParam.ToInt32()!=1 && restoreWasMinimized)

@@ -2,3 +2,11 @@ bin/
 obj/
 dist/
 *.user
+
+# Generated installers, native-test reports and local browser data
+*.exe
+*.pdb
+*.csv
+*.dpapi
+Data/
+window-smoke-results/

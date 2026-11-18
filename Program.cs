@@ -25,7 +25,7 @@ sealed class BrowserView : WebView2
     {
         if (!force && lastVisible == value) return;
         Visible = value;
-        // Um TabPage já oculto pode impedir um novo VisibleChanged.
+        // Um BrowserPage já oculto pode impedir um novo VisibleChanged.
         // Repropagar a visibilidade também nessa situação para o controle nativo.
         OnVisibleChanged(EventArgs.Empty);
         lastVisible = value;
@@ -34,7 +34,7 @@ sealed class BrowserView : WebView2
 
 sealed class BrowserTab
 {
-    public TabPage Page { get; } = new("Nova guia");
+    public BrowserPage Page { get; } = new("Nova guia");
     public BrowserView? View { get; set; }
     public string? Url { get; set; }
     public string Title { get; set; } = "Nova guia";
@@ -58,10 +58,10 @@ sealed class BrowserTab
 sealed partial class BrowserWindow : Form
 {
     readonly HoverTabs tabs = new() { Dock = DockStyle.Fill, ShowToolTips = true };
-    readonly TabPage plusTab = new("+") { ToolTipText = "Abrir nova aba ao lado da selecionada" };
+    readonly BrowserPage plusTab = new("+") { ToolTipText = "Abrir nova aba ao lado da selecionada" };
     readonly TextBox address = new() { BorderStyle = BorderStyle.None, Dock = DockStyle.Fill, Font = new("Segoe UI", 12) };
     readonly Label status = new() { Dock = DockStyle.Bottom, Height = 26, TextAlign = ContentAlignment.MiddleLeft, Padding = new(12, 0, 0, 0) };
-    readonly Dictionary<TabPage, BrowserTab> items = new();
+    readonly Dictionary<BrowserPage, BrowserTab> items = new();
     readonly System.Windows.Forms.Timer timer = new() { Interval = 15000 };
     readonly Button back = MakeButton("‹"), forward = MakeButton("›");
     readonly Button bookmarkButton = MakeButton("Favoritar"), downloadsButton = MakeButton("Downloads");
@@ -93,6 +93,7 @@ sealed partial class BrowserWindow : Form
 
     public BrowserWindow()
     {
+        SetStyle(ControlStyles.AllPaintingInWmPaint|ControlStyles.OptimizedDoubleBuffer|ControlStyles.ResizeRedraw,true);
         LoadBrowsingPreferences();
         Text = "VOLT — Navegue sem peso";
         using(var iconStream=typeof(BrowserWindow).Assembly.GetManifestResourceStream("Volt.AppIcon")!)
@@ -158,7 +159,7 @@ sealed partial class BrowserWindow : Form
         tabs.ReorderRequested += MoveTab;
         tabs.Selecting += (_, e) =>
         {
-            if (e.TabPage != plusTab) return;
+            if (e.BrowserPage != plusTab) return;
             e.Cancel = true;
             if (changingTabs) return;
             BeginInvoke(new Action(() => { if (!closing) _ = AddTab(); }));
@@ -193,7 +194,7 @@ sealed partial class BrowserWindow : Form
         {
             darkMode = dark.Checked;
             UpdateThemeToggle();
-            using(var redraw=new ThemeRedraw(this)) BrowserTheme.Apply(this, darkMode);
+            using(var redraw=new VisualUpdate(this)) BrowserTheme.Apply(this, darkMode);
             addressSuggestions?.ApplyTheme(darkMode);
             popup.Renderer = darkMode ? new ToolStripProfessionalRenderer(new DarkMenuColors()) : new ToolStripProfessionalRenderer();
             popup.BackColor = darkMode ? BrowserTheme.Surface : SystemColors.Control;
@@ -263,7 +264,7 @@ sealed partial class BrowserWindow : Form
                 catch { }
             });
         };
-        FormClosing += (_, _) => { closing = true; restoreRefresh.Cancel(); addressSuggestions?.Dispose(); modernToolsPopup?.Dispose(); timer.Stop(); outsideWhatsApp?.Dispose(); DisposeWhatsApp(); sidebarLogo?.Image?.Dispose(); foreach (var tab in items.Values) { DisposeView(tab); ClearFavicon(tab); } timer.Dispose(); popup.Dispose(); chromeTips.Dispose(); };
+        FormClosing += (_, _) => { closing = true; restoreRefresh.Cancel(); addressSuggestions?.Dispose(); modernToolsPopup?.Dispose(); timer.Stop(); whatsAppMotion.Stop();whatsAppMotion.Dispose(); outsideWhatsApp?.Dispose(); DisposeWhatsApp(); sidebarLogo?.Image?.Dispose(); foreach (var tab in items.Values) { DisposeView(tab); ClearFavicon(tab); } timer.Dispose(); popup.Dispose(); chromeTips.Dispose(); };
     }
 
     void SetWebTheme(BrowserView view)
@@ -285,12 +286,12 @@ sealed partial class BrowserWindow : Form
     {
         if (closing) return;
         BrowserTab tab;
-        using(var redraw=new ThemeRedraw(this))
+        using(var redraw=new VisualUpdate(this))
         {
             tab=new BrowserTab();tab.Page.Tag=tab;tab.Page.Bounds=tabs.DisplayRectangle;
             tab.Page.BackColor=darkMode?BrowserTheme.Background:Color.FromArgb(240,243,248);
             items.Add(tab.Page,tab);
-            // Build and theme the page before selecting it; the old frame covers native handle creation.
+            // Build and theme the page before selecting it; all surfaces have their final theme and bounds before becoming visible.
             ShowHome(tab);
             int insert=ResourcePolicy.NewTabIndex(tabs.SelectedIndex,items.Count-1);
             changingTabs=true;
@@ -474,7 +475,7 @@ sealed partial class BrowserWindow : Form
         var oldTab = previous;
         if (oldTab is not null && oldTab != Current) oldTab.HiddenSince = DateTime.UtcNow;
         previous = Current;
-        // Não depender apenas da visibilidade herdada do TabPage:
+        // Não depender apenas da visibilidade herdada do BrowserPage:
         // o controlador WebView2 precisa ficar explicitamente oculto.
         foreach (var other in items.Values)
             if (other.View is { } web && other != Current) web.SetPageVisible(false);
@@ -529,38 +530,28 @@ sealed partial class BrowserWindow : Form
         catch (Exception ex) when (ex is InvalidOperationException or System.Runtime.InteropServices.COMException) { }
     }
 
-    void MoveTab(TabPage page, int slot)
+    void MoveTab(BrowserPage page, int slot)
     {
         // Single and group drags share the same transaction: never detach the active page.
         MoveTabGroup(new[]{page},slot);
     }
 
-    void MoveTabGroup(IReadOnlyList<TabPage> pages,int slot)
+    void MoveTabGroup(IReadOnlyList<BrowserPage> pages,int slot)
     {
         if(closing)return;
-        var before=tabs.TabPages.Cast<TabPage>().Where(items.ContainsKey).ToList();
+        var before=tabs.TabPages.Cast<BrowserPage>().Where(items.ContainsKey).ToList();
         var group=before.Where(pages.Contains).ToArray();
         if(group.Length==0)return;
         var after=TabBlockMove.Move(before,group,slot);
         if(before.SequenceEqual(after))return;
         var selected=tabs.SelectedTab;
-        using(var redraw=new ThemeRedraw(this))
+        using(var redraw=new VisualUpdate(this))
         {
             changingTabs=true;movingTabs=true;tabs.SuspendLayout();
             try
             {
-                if(selected is not null && group.Contains(selected))
-                {
-                    // Keep the visible page attached; move its siblings around it.
-                    foreach(var page in before.Where(p=>p!=selected))tabs.TabPages.Remove(page);
-                    for(int i=0;i<after.Count;i++)if(after[i]!=selected)tabs.TabPages.Insert(i,after[i]);
-                }
-                else
-                {
-                    foreach(var page in group)tabs.TabPages.Remove(page);
-                    int insert=after.IndexOf(group[0]);
-                    foreach(var page in group)tabs.TabPages.Insert(insert++,page);
-                }
+                // Reorder metadata only: all page handles and browser controllers stay attached.
+                tabs.TabPages.Reorder(after.Append(plusTab));
                 if(selected is not null && items.ContainsKey(selected))tabs.SelectedTab=selected;
             }
             finally{movingTabs=false;changingTabs=false;tabs.ResumeLayout(true);}
@@ -581,14 +572,14 @@ sealed partial class BrowserWindow : Form
     void ShowTabDiagnostics()
     {
         var details = new List<string>();
-        foreach (TabPage page in tabs.TabPages)
+        foreach (BrowserPage page in tabs.TabPages)
         {
             if (!items.TryGetValue(page, out var tab)) continue;
             string reason = Protection(tab);
             string state = tab.Unloaded ? "Liberada" : tab.Ready && tab.View!.CoreWebView2.IsSuspended ? "Suspensa" : reason.Length > 0 ? reason : tab.SleepResult;
             details.Add(tab.Title + "\n" + state + $" • {Math.Max(0, (int)(DateTime.UtcNow - tab.HiddenSince).TotalSeconds)} s desde a última saída da aba");
         }
-        using var dialog = new Form { Text = "Diagnóstico das abas — VOLT 0.6.7", Size = new(720, 500), StartPosition = FormStartPosition.CenterParent };
+        using var dialog = new Form { Text = "Diagnóstico das abas — VOLT 0.6.8", Size = new(720, 500), StartPosition = FormStartPosition.CenterParent };
         dialog.Controls.Add(new TextBox { Multiline = true, ReadOnly = true, ScrollBars = ScrollBars.Vertical, Dock = DockStyle.Fill, Text = string.Join("\r\n\r\n", details), Font = new("Segoe UI", 11) });
         dialog.ShowDialog(this);
     }
@@ -614,7 +605,7 @@ sealed partial class BrowserWindow : Form
         return released;
     }
 
-    void CloseTabGroup(IReadOnlyList<TabPage> pages)
+    void CloseTabGroup(IReadOnlyList<BrowserPage> pages)
     {
         var targets=pages.Distinct().Where(items.ContainsKey).Select(p=>items[p]).ToArray();
         if(targets.Length==0)return;
@@ -632,10 +623,10 @@ sealed partial class BrowserWindow : Form
     void ClosePages(IReadOnlyList<BrowserTab> targets)
     {
         if(closing)return;
-        var order=tabs.TabPages.Cast<TabPage>().Where(items.ContainsKey).ToList();
+        var order=tabs.TabPages.Cast<BrowserPage>().Where(items.ContainsKey).ToList();
         var next=TabCloseSelection.Next(order,targets.Select(t=>t.Page),tabs.SelectedTab);
         if(next is null){Close();return;}
-        using(var redraw=new ThemeRedraw(this))
+        using(var redraw=new VisualUpdate(this))
         {
             changingTabs=true;movingTabs=true;tabs.SuspendLayout();
             try
@@ -754,7 +745,7 @@ sealed partial class BrowserWindow : Form
             item.Page.ToolTipText = item.Title + "\n" + (item.Unloaded ? "Liberada; recarrega ao voltar" : item.SleepResult);
         }
         MeasureMemory();
-        status.Text = $"VOLT 0.6.7 • {items.Count} aba(s) • {sleeping} suspensa(s) • {unloaded} liberada(s) • {blocked} bloqueio(s)" + (deepEconomy ? " • Economia forte" : "") + memory;
+        status.Text = $"VOLT 0.6.8 • {items.Count} aba(s) • {sleeping} suspensa(s) • {unloaded} liberada(s) • {blocked} bloqueio(s)" + (deepEconomy ? " • Economia forte" : "") + memory;
     }
 
     protected override bool ProcessCmdKey(ref Message msg, Keys keyData)

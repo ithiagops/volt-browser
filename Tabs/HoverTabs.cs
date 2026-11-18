@@ -3,31 +3,79 @@ using System.Drawing.Drawing2D;
 
 namespace Volt;
 
-// Só gerencia as páginas; o cabeçalho é um controle leve, sem tema nativo por baixo.
-sealed class HoverTabs : TabControl
+// Managed page host: no hidden native tab strip, native borders or TabControl paint cache.
+sealed class BrowserPage : Panel
 {
-    public HoverTabs()
+    [System.ComponentModel.DefaultValue("")]
+    public string ToolTipText { get; set; } = "";
+    public BrowserPage(string title){Text=title;Dock=DockStyle.Fill;Margin=Padding.Empty;}
+}
+sealed class PageSelectingEventArgs(BrowserPage? page) : System.ComponentModel.CancelEventArgs
+{public BrowserPage? BrowserPage {get;}=page;}
+sealed class HoverTabs : Panel
+{
+    public sealed class PageCollection(HoverTabs owner) : IReadOnlyList<BrowserPage>
     {
-        SizeMode = TabSizeMode.Fixed;
-        ItemSize = new Size(1, 1);
-        Padding = Point.Empty;
-        Appearance = TabAppearance.FlatButtons;
+        readonly List<BrowserPage> pages=[];
+        public BrowserPage this[int index]=>pages[index];
+        public int Count=>pages.Count;
+        public int IndexOf(BrowserPage page)=>pages.IndexOf(page);
+        public bool Contains(BrowserPage page)=>pages.Contains(page);
+        public IEnumerator<BrowserPage> GetEnumerator()=>pages.GetEnumerator();
+        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()=>GetEnumerator();
+        public void Add(BrowserPage page)=>Insert(pages.Count,page);
+        public void Insert(int index,BrowserPage page)
+        {
+            if(pages.Contains(page))throw new ArgumentException("A página já pertence ao navegador.");
+            page.Visible=false;pages.Insert(index,page);owner.Controls.Add(page);
+            page.Bounds=owner.DisplayRectangle;
+            if(owner.selected is null)owner.SelectedTab=page;
+        }
+        public void Remove(BrowserPage page)
+        {
+            int index=pages.IndexOf(page);if(index<0)return;
+            bool active=owner.selected==page;pages.RemoveAt(index);owner.Controls.Remove(page);
+            if(active){owner.selected=null;owner.SelectedTab=pages.Count==0?null:pages[Math.Min(index,pages.Count-1)];}
+        }
+        public void Reorder(IEnumerable<BrowserPage> order)
+        {
+            var next=order.ToList();
+            if(next.Count!=pages.Count || next.Distinct().Count()!=pages.Count || next.Any(p=>!pages.Contains(p)))throw new ArgumentException("Ordem de abas inválida.");
+            pages.Clear();pages.AddRange(next);owner.Invalidate();
+        }
     }
-    public event Action<TabPage>? CloseRequested;
-    public event Action<TabPage, int>? ReorderRequested;
-    public event Action<TabPage>? OpeningRequested;
-    public void RequestClose(TabPage page) => CloseRequested?.Invoke(page);
-    public void RequestMove(TabPage page, int destination)
+    BrowserPage? selected;
+    public HoverTabs(){TabPages=new(this);DoubleBuffered=true;ResizeRedraw=true;}
+    [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
+    public PageCollection TabPages {get;}
+    [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
+    public bool ShowToolTips {get;set;}
+    [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
+    public BrowserPage? SelectedTab
     {
-        int source = TabPages.IndexOf(page);
-        ReorderRequested?.Invoke(page, destination > source ? destination + 1 : destination);
+        get=>selected;
+        set
+        {
+            if(value==selected)return;
+            if(value is not null && !TabPages.Contains(value))throw new ArgumentException("Aba desconhecida.");
+            var args=new PageSelectingEventArgs(value);Selecting?.Invoke(this,args);if(args.Cancel)return;
+            var old=selected;selected=value;
+            // Put the final surface in front before hiding the old one. No intermediate blank page.
+            if(value is not null){value.Bounds=DisplayRectangle;value.PerformLayout();value.Visible=true;value.BringToFront();}
+            if(old is not null)old.Visible=false;
+            SelectedIndexChanged?.Invoke(this,EventArgs.Empty);
+        }
     }
-    public void MarkOpening(TabPage page) => OpeningRequested?.Invoke(page);
-    protected override void WndProc(ref Message m)
-    {
-        if (m.Msg == 0x1328 && !DesignMode) { m.Result = IntPtr.Zero; return; }
-        base.WndProc(ref m);
-    }
+    public int SelectedIndex=>selected is null?-1:TabPages.IndexOf(selected);
+    public event EventHandler<PageSelectingEventArgs>? Selecting;
+    public event EventHandler? SelectedIndexChanged;
+    public event Action<BrowserPage>? CloseRequested;
+    public event Action<BrowserPage,int>? ReorderRequested;
+    public event Action<BrowserPage>? OpeningRequested;
+    public void RequestClose(BrowserPage page)=>CloseRequested?.Invoke(page);
+    public void RequestMove(BrowserPage page,int destination)
+    {int source=TabPages.IndexOf(page);ReorderRequested?.Invoke(page,destination>source?destination+1:destination);}
+    public void MarkOpening(BrowserPage page)=>OpeningRequested?.Invoke(page);
 }
 
 sealed class BrowserTabsHeader : Control
@@ -36,20 +84,20 @@ sealed class BrowserTabsHeader : Control
     internal bool Dark { get; set; }
     sealed class Visual { public float X, Width, Opacity = 1; }
     readonly HoverTabs model;
-    readonly TabPage plusPage;
-    readonly Dictionary<TabPage, Visual> visuals = new();
-    readonly Dictionary<TabPage, RectangleF> targets = new();
-    readonly Dictionary<TabPage, RectangleF> hits = new();
-    readonly HashSet<TabPage> opening = new();
-    readonly TabRangeSelection<TabPage> selection = new();
+    readonly BrowserPage plusPage;
+    readonly Dictionary<BrowserPage, Visual> visuals = new();
+    readonly Dictionary<BrowserPage, RectangleF> targets = new();
+    readonly Dictionary<BrowserPage, RectangleF> hits = new();
+    readonly HashSet<BrowserPage> opening = new();
+    readonly TabRangeSelection<BrowserPage> selection = new();
     readonly ContextMenuStrip groupMenu = new();
     bool rangeClick;
-    TabPage[] dragGroup=[];
-    public event Action<IReadOnlyList<TabPage>,int>? MoveGroupRequested;
-    public event Action<IReadOnlyList<TabPage>>? CloseGroupRequested;
+    BrowserPage[] dragGroup=[];
+    public event Action<IReadOnlyList<BrowserPage>,int>? MoveGroupRequested;
+    public event Action<IReadOnlyList<BrowserPage>>? CloseGroupRequested;
     readonly System.Windows.Forms.Timer animation = new() { Interval = 16 };
     readonly ToolTip tooltip = new() { InitialDelay = 700 };
-    TabPage? hover, candidate, pressedClose;
+    BrowserPage? hover, candidate, pressedClose;
     Point pointer = new(-1, -1), origin;
     bool dragging, reveal = true, hotClose;
     int start, destination;
@@ -60,9 +108,9 @@ sealed class BrowserTabsHeader : Control
     public event Action<bool>? EmptyDragRequested;
     float DpiFactor => DeviceDpi / 96f;
     float Px(float value) => value * DpiFactor;
-    List<TabPage> Pages => model.TabPages.Cast<TabPage>().Where(p => p != plusPage).ToList();
+    List<BrowserPage> Pages => model.TabPages.Cast<BrowserPage>().Where(p => p != plusPage).ToList();
 
-    public BrowserTabsHeader(HoverTabs model, TabPage plusPage)
+    public BrowserTabsHeader(HoverTabs model, BrowserPage plusPage)
     {
         this.model = model; this.plusPage = plusPage;
         groupMenu.Items.Add("Fechar abas selecionadas",null,(_,_)=>
@@ -78,16 +126,17 @@ sealed class BrowserTabsHeader : Control
         animation.Tick += Frame;
         model.ControlAdded += Added; model.ControlRemoved += Removed;
         model.SelectedIndexChanged += Selected; model.OpeningRequested += Opened;
-        foreach (TabPage p in model.TabPages) p.TextChanged += TitleChanged;
+        foreach (BrowserPage p in model.TabPages) p.TextChanged += TitleChanged;
     }
-    void Added(object? s, ControlEventArgs e) { if (e.Control is TabPage p) p.TextChanged += TitleChanged; StartAnimation(); Invalidate(); }
-    void Removed(object? s, ControlEventArgs e) { if (e.Control is TabPage p) p.TextChanged -= TitleChanged; StartAnimation(); Invalidate(); }
+    void Added(object? s, ControlEventArgs e) { if (e.Control is BrowserPage p) p.TextChanged += TitleChanged; StartAnimation(); Invalidate(); }
+    void Removed(object? s,ControlEventArgs e)
+    {if(e.Control is BrowserPage p)p.TextChanged-=TitleChanged;StartAnimation();Invalidate();}
     void TitleChanged(object? s, EventArgs e) => Invalidate();
     void Selected(object? s, EventArgs e) {
         if(!rangeClick && model.SelectedTab is { } selected && selected!=plusPage)
             selection.Click(Pages,selected,false);
         reveal = true; StartAnimation(); Invalidate(); }
-    void Opened(TabPage p) { opening.Add(p); visuals.Remove(p); RefreshLayout(); }
+    void Opened(BrowserPage p) { opening.Add(p); visuals.Remove(p); RefreshLayout(); }
     void RefreshLayout() { if (IsDisposed) return; Arrange(); StartAnimation(); Invalidate(); }
     void StartAnimation()
     {
@@ -182,7 +231,7 @@ sealed class BrowserTabsHeader : Control
         Circle(g, plus, "+", true);
         if (!left.IsEmpty) { Circle(g, left, "‹", false); Circle(g, right, "›", false); }
     }
-    void DrawTab(Graphics g, TabPage page, RectangleF b, float opacity, bool ghost)
+    void DrawTab(Graphics g, BrowserPage page, RectangleF b, float opacity, bool ghost)
     {
         bool selected = model.SelectedTab == page;
         bool grouped = selection.Items.Contains(page) && selection.Items.Count>1;
@@ -236,7 +285,7 @@ sealed class BrowserTabsHeader : Control
         }
         else TextRenderer.DrawText(g, text, Font, Rectangle.Round(b), ForeColor, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
     }
-    TabPage? Hit(Point p)
+    BrowserPage? Hit(Point p)
     {
         if(!ClientRectangle.Contains(p))return null;
         // Match paint order during animations; close targets keep their original bounds.
@@ -249,7 +298,7 @@ sealed class BrowserTabsHeader : Control
         var p=PointToClient(screen);
         return AtPlus(p) || Hit(p) is not null;
     }
-    bool AtClose(TabPage page, Point p) => hits.TryGetValue(page, out var b) && CloseBox(b).Contains(p);
+    bool AtClose(BrowserPage page, Point p) => hits.TryGetValue(page, out var b) && CloseBox(b).Contains(p);
     protected override void OnMouseMove(MouseEventArgs e)
     {
         base.OnMouseMove(e); var oldPointer = pointer; pointer = e.Location;
@@ -380,7 +429,7 @@ sealed class BrowserTabsHeader : Control
         {
             groupMenu.Dispose(); animation.Dispose(); tooltip.Dispose(); model.ControlAdded -= Added; model.ControlRemoved -= Removed;
             model.SelectedIndexChanged -= Selected; model.OpeningRequested -= Opened;
-            foreach (TabPage p in model.TabPages) p.TextChanged -= TitleChanged;
+            foreach (BrowserPage p in model.TabPages) p.TextChanged -= TitleChanged;
         }
         base.Dispose(disposing);
     }
